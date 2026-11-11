@@ -1,10 +1,11 @@
 import os
 import random
 import string
-import smtplib
 import secrets
+import json
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
-from email.message import EmailMessage
 from functools import wraps
 
 import chess
@@ -53,24 +54,36 @@ with app.app_context():
     db.create_all()
 
 
-def smtp_ready():
-    return all(os.environ.get(k) for k in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"))
-
-
 def send_email(to_address, subject, body):
-    if not smtp_ready():
-        raise RuntimeError("E-posta servisi henüz ayarlanmamış. Yönetici SMTP ayarlarını yapmalı.")
-    message = EmailMessage()
-    message["Subject"] = subject
-    message["From"] = os.environ["SMTP_FROM"]
-    message["To"] = to_address
-    message.set_content(body)
-    host = os.environ["SMTP_HOST"]
-    port = int(os.environ.get("SMTP_PORT", "587"))
-    with smtplib.SMTP(host, port, timeout=20) as server:
-        server.starttls()
-        server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
-        server.send_message(message)
+    api_key = os.environ.get("RESEND_API_KEY", "").strip()
+    from_address = os.environ.get("RESEND_FROM", "").strip()
+    if not api_key or not from_address:
+        raise RuntimeError("Resend e-posta ayarları eksik.")
+
+    payload = json.dumps({
+        "from": from_address,
+        "to": [to_address],
+        "subject": subject,
+        "text": body
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            response.read()
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Resend e-posta API hatası: HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("Resend e-posta servisine bağlanılamadı.") from exc
 
 
 def current_user():
@@ -122,9 +135,6 @@ def register():
         return jsonify(ok=False, error="Şifre en az 8 karakter olmalı."), 400
     if User.query.filter((User.username.ilike(username)) | (User.email == email)).first():
         return jsonify(ok=False, error="Bu kullanıcı adı veya e-posta zaten kayıtlı."), 409
-    if not smtp_ready():
-        return jsonify(ok=False, error="Kayıt e-postası gönderilemiyor. Site yöneticisinin e-posta ayarlarını yapması gerekiyor."), 503
-
     code = f"{secrets.randbelow(1000000):06d}"
     user = User(
         id=secrets.token_hex(16),
