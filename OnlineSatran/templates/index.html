@@ -422,6 +422,49 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
  #authScreen{margin:24px 0}
 }
 
+
+/* Multi-page chess platform */
+.site-nav{display:none;position:sticky;top:0;z-index:50;gap:7px;flex-wrap:wrap;padding:10px;margin:14px 0 20px;background:rgba(255,255,255,.96);border:1px solid #dce3df;border-radius:12px;box-shadow:0 5px 18px rgba(35,55,70,.07)}
+.site-nav.visible{display:flex}
+.site-nav button{margin:0;background:transparent;color:#344b42;border-color:transparent;padding:10px 13px}
+.site-nav button.active,.site-nav button:hover{background:#e9efeb;color:#1f3d30;border-color:#d7e1da}
+.site-view{display:none!important}
+.site-view.active{display:block!important}
+.site-view.active#menuScreen{display:grid!important}
+.site-view.active#gameScreen{display:block!important}
+#homePage{padding:clamp(22px,4vw,48px);background:linear-gradient(125deg,#fff 0%,#f0f5f0 100%);border:1px solid #dce5df;border-radius:16px;min-height:330px}
+.home-kicker,.page-kicker{font-size:11px;letter-spacing:2px;font-weight:800;color:#557a64}
+#homePage h2{font:700 clamp(32px,5vw,54px)/1.08 Georgia,serif;color:#243b30;max-width:700px;margin:15px 0}
+#homePage p{max-width:650px;color:#64736a;font-size:16px;line-height:1.7}
+.home-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px}
+.home-actions button{padding:14px 20px}
+.page-shell{background:#fff;border:1px solid #dce3df;border-radius:13px;padding:clamp(18px,3vw,30px);margin:14px 0}
+.page-shell h2{color:#243b30;margin:5px 0 8px;font-size:28px}
+.page-lead{color:#6a7770;margin:0 0 22px;line-height:1.6}
+.piece-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.piece-card{border:1px solid #e0e6e2;border-radius:11px;padding:16px;background:#fbfcfb;display:flex;flex-direction:column;gap:8px;min-width:0}
+.piece-art{width:92px;height:92px;object-fit:contain;display:block;margin:0 auto}
+.piece-card h3{margin:4px 0 0;color:#263e32;text-align:center}
+.piece-card p{margin:0;color:#69766e;font-size:13px;line-height:1.5}
+.piece-card .piece-move{font-size:12px;color:#344b40;background:#edf3ee;border-radius:7px;padding:8px}
+.piece-editor{margin-top:24px;padding:18px;background:#f3f7f3;border:1px solid #dce6de;border-radius:10px}
+.piece-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.piece-editor input,.piece-editor select,.piece-editor textarea{width:100%;padding:11px;border:1px solid #d4ded7;border-radius:6px;background:#fff;color:#243b30}
+.piece-editor textarea{min-height:75px;resize:vertical}
+.piece-editor button{margin:8px 0 0}
+#sandboxBoard{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:min(100%,520px);aspect-ratio:1;border:4px solid #43594b;border-radius:5px;overflow:hidden;margin-top:14px}
+.sandbox-square{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;cursor:pointer}
+.sandbox-square:nth-child(16n + 1),.sandbox-square:nth-child(16n + 3),.sandbox-square:nth-child(16n + 5),.sandbox-square:nth-child(16n + 7),.sandbox-square:nth-child(16n + 10),.sandbox-square:nth-child(16n + 12),.sandbox-square:nth-child(16n + 14),.sandbox-square:nth-child(16n + 16){background:#eee9df}
+.sandbox-square:nth-child(16n + 2),.sandbox-square:nth-child(16n + 4),.sandbox-square:nth-child(16n + 6),.sandbox-square:nth-child(16n + 8),.sandbox-square:nth-child(16n + 9),.sandbox-square:nth-child(16n + 11),.sandbox-square:nth-child(16n + 13),.sandbox-square:nth-child(16n + 15){background:#829985}
+.sandbox-square img{width:88%;height:88%;object-fit:contain;pointer-events:none}
+.sandbox-controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.sandbox-controls select{padding:10px;border:1px solid #d4ded7;border-radius:6px;background:white}
+.data-list{display:grid;gap:9px}
+.data-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px;border:1px solid #e2e8e4;border-radius:8px;background:#fbfcfb}
+.data-row small{display:block;color:#728078;margin-top:3px}
+@media(max-width:700px){.site-nav{position:static}.site-nav button{flex:1 1 30%;font-size:12px;padding:9px 5px}.piece-editor-grid{grid-template-columns:1fr}.data-row{align-items:flex-start;flex-direction:column}}
+.piece-image{width:90%;height:90%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 2px #0003)}
+
 </style>
 </head>
 
@@ -466,7 +509,62 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
   <button type="button" onclick="logout()">Çıkış yap</button>
 </div>
 
-<div id="profilePanel" class="panel hidden">
+
+<nav id="siteNav" class="site-nav" aria-label="Ana gezinme">
+  <button type="button" data-page="home" onclick="showPage('home')">Ana Sayfa</button>
+  <button type="button" data-page="play" onclick="showPage('play')">Satranç Oyna</button>
+  <button type="button" data-page="pieces" onclick="showPage('pieces')">Taş Koleksiyonu</button>
+  <button type="button" data-page="leaderboard" onclick="showPage('leaderboard')">Sıralama</button>
+  <button type="button" data-page="community" onclick="showPage('community')">Arkadaşlar</button>
+  <button type="button" data-page="history" onclick="showPage('history')">Maçlarım</button>
+  <button type="button" data-page="profile" onclick="showPage('profile')">Profil</button>
+  <button type="button" id="adminNavButton" data-page="admin" class="hidden" onclick="loadAdmin()">Admin</button>
+</nav>
+<section id="homePage" class="site-view">
+  <span class="home-kicker">ONLINE SATRANÇ PLATFORMU</span>
+  <h2>Hamleni yap. Kendi satranç dünyanı kur.</h2>
+  <p>Arkadaşlarınla çevrimiçi oyna, sıralamanı takip et, özel taşları keşfet ve kendi satranç tahtanı tasarla.</p>
+  <div class="home-actions">
+    <button type="button" onclick="showPage('play')">Satranç oyna</button>
+    <button type="button" onclick="showPage('pieces')">Taşları keşfet</button>
+    <button type="button" onclick="showPage('leaderboard')">Liderlik tablosu</button>
+  </div>
+</section>
+<section id="piecesPage" class="page-shell site-view">
+  <span class="page-kicker">ÖZEL TAŞ ATÖLYESİ</span><h2>Taş koleksiyonu</h2>
+  <p class="page-lead">Her taşın görünümünü ve tasarlanan hareket kuralını burada inceleyebilirsin. Yönetici yeni taşlar ekleyebilir.</p>
+  <div id="pieceCatalog" class="piece-grid"></div>
+  <div class="piece-editor">
+    <h3>Tahta tasarım alanı</h3><p class="page-lead">Taş seçip karelere tıklayarak özel bir başlangıç dizilimi önizle. Bu alan şu an tasarım/önizleme modudur; normal çevrimiçi maç kurallarını değiştirmez.</p>
+    <div class="sandbox-controls"><select id="sandboxPiece"></select><button type="button" onclick="clearSandbox()">Tahtayı temizle</button></div>
+    <div id="sandboxBoard"></div>
+  </div>
+  <div id="adminPieceEditor" class="piece-editor hidden">
+    <h3>Yönetici: yeni özel taş ekle</h3>
+    <div class="piece-editor-grid">
+      <input id="newPieceName" maxlength="32" placeholder="Taş adı (ör. Gölge)">
+      <select id="newPieceStyle"><option value="joker">Joker</option><option value="dragon">Ejderha</option><option value="wizard">Büyücü</option><option value="phoenix">Anka kuşu</option><option value="golem">Golem</option><option value="archer">Okçu</option><option value="assassin">Suikastçı</option><option value="royal">Kraliyet</option></select>
+      <input id="newPieceSymbol" maxlength="4" value="★" placeholder="Sembol">
+      <textarea id="newPieceMovement" maxlength="240" placeholder="Hareket kuralı (ör. Vezir gibi düz ve çapraz, ayrıca at gibi L şeklinde)"></textarea>
+    </div>
+    <button type="button" onclick="createCustomPiece()">Taşı koleksiyona ekle</button>
+    <div id="pieceAdminMessage" class="small-note"></div>
+  </div>
+</section>
+<section id="leaderboardPage" class="page-shell site-view">
+  <span class="page-kicker">REKABET</span><h2>Liderlik tablosu</h2><p class="page-lead">En yüksek ELO puanına sahip oyuncular.</p><div id="leaderboardPageList" class="data-list">Yükleniyor...</div>
+</section>
+<section id="communityPage" class="page-shell site-view">
+  <span class="page-kicker">TOPLULUK</span><h2>Arkadaşlar</h2><p class="page-lead">Kullanıcı adıyla arkadaş ekle ve gelen istekleri kabul et.</p>
+  <div class="friend-entry"><input id="friendUsernamePage" placeholder="Kullanıcı adı"><button type="button" onclick="sendFriendRequestFromPage()">İstek gönder</button></div>
+  <h3>Gelen istekler</h3><div id="incomingFriendsPage" class="data-list">Yükleniyor...</div>
+  <h3>Arkadaş listem</h3><div id="friendsPageList" class="data-list">Yükleniyor...</div>
+</section>
+<section id="historyPage" class="page-shell site-view">
+  <span class="page-kicker">OYUN GEÇMİŞİ</span><h2>Maçlarım</h2><p class="page-lead">Tamamlanan dereceli maçların.</p><div id="historyPageList" class="data-list">Yükleniyor...</div>
+</section>
+
+<div id="profilePanel" class="panel hidden site-view">
   <h2>Profilini özelleştir</h2>
   <div class="profile-row">
     <div id="profileAvatar" class="avatar">♟</div>
@@ -481,7 +579,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
   <button type="button" onclick="toggleProfile()">Kapat</button>
 </div>
 
-<div id="dashboardPanel" class="panel hidden dashboard-panel">
+<div id="dashboardPanel" class="panel hidden dashboard-panel site-view">
   <div class="section-heading"><div><span class="eyebrow">OYUNCU ALANI</span><h2>Oyuncu merkezi</h2><p>İstatistiklerini, sıralamanı ve arkadaşlarını takip et.</p></div><button type="button" class="icon-button" onclick="document.getElementById('dashboardPanel').classList.add('hidden')">✕</button></div>
   <div class="dashboard-grid">
     <section class="dashboard-card stats-card"><span class="eyebrow">PERFORMANSIN</span><h3>İstatistikler</h3><div id="myStats">Veriler yükleniyor...</div></section>
@@ -489,14 +587,14 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
     <section class="dashboard-card"><span class="eyebrow">TOPLULUK</span><h3>Arkadaş ekle</h3><div class="friend-entry"><input id="friendUsername" placeholder="Kullanıcı adı"><button type="button" onclick="sendFriendRequest()">İstek gönder</button></div><div id="friendRequests"></div><div id="friendList"></div></section>
     <section class="dashboard-card"><span class="eyebrow">SON OYUNLAR</span><h3>Maç geçmişi</h3><div id="gameHistory">Maçlar yükleniyor...</div></section>
   </div>
-</div><div id="adminPanel" class="panel hidden">
+</div><div id="adminPanel" class="panel hidden site-view">
   <h2>Yönetici paneli</h2>
   <p class="small-note">Kullanıcı adı ve kayıt tarihi görünür. Şifreler hiçbir zaman gösterilmez.</p>
   <div id="adminUsers"></div>
   <button type="button" onclick="document.getElementById('adminPanel').classList.add('hidden')">Kapat</button>
 </div>
 
-<div id="menuScreen" class="panel hidden">
+<div id="menuScreen" class="panel hidden site-view">
 
     <h2>Oyun menüsü</h2>
 
@@ -514,7 +612,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
 
 </div>
 
-<div id="gameScreen">
+<div id="gameScreen" class="site-view">
 
     <div class="status" id="gameStatus">Oyun yükleniyor...</div>
 
@@ -561,6 +659,26 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
 
 <script>
 
+
+
+let boardFlipped = false;
+let customPieceCache = [];
+let sandboxCells = Array(64).fill(null);
+let currentPage = "home";
+function showPage(page){
+  if(!currentUser && page!=="home") return;
+  if(page==="admin" && !(currentUser&&currentUser.is_admin)) return;
+  currentPage=page;
+  document.querySelectorAll(".site-view").forEach(el=>el.classList.remove("active"));
+  const ids={home:"homePage",play:roomCode?"gameScreen":"menuScreen",pieces:"piecesPage",leaderboard:"leaderboardPage",community:"communityPage",history:"historyPage",profile:"profilePanel",admin:"adminPanel"};
+  const target=document.getElementById(ids[page]||"homePage");
+  if(target){target.classList.remove("hidden");target.classList.add("active");}
+  document.querySelectorAll("#siteNav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  if(page==="pieces") loadCustomPieces();
+  if(page==="leaderboard") loadLeaderboardPage();
+  if(page==="community") loadFriendsPage();
+  if(page==="history") loadHistoryPage();
+}
 
 async function api(url, data, method="POST") {
   const options = {method, headers:{}};
@@ -640,7 +758,10 @@ function finishLogin(user) {
   currentUser=user; playerId=user.id;
   document.getElementById("authScreen").classList.add("hidden");
   document.getElementById("accountBar").classList.remove("hidden");
-  document.getElementById("menuScreen").classList.remove("hidden");
+  document.getElementById("siteNav").classList.add("visible");
+  document.getElementById("adminNavButton").classList.toggle("hidden", !user.is_admin);
+  document.getElementById("adminPieceEditor").classList.toggle("hidden", !user.is_admin);
+  showPage("home");
   document.getElementById("welcomeName").textContent=user.display_name || user.username;
   document.getElementById("adminOpenButton").classList.toggle("hidden", !user.is_admin);
   setAvatar("miniAvatar",user); setAvatar("profileAvatar",user);
@@ -655,7 +776,7 @@ function setAvatar(id,user) {
   if(user.has_avatar) el.innerHTML='<img alt="Profil görseli" src="/api/avatar/'+encodeURIComponent(user.id)+'?v='+Date.now()+'">';
   else el.textContent=(user.display_name || user.username || "♟").slice(0,1).toUpperCase();
 }
-function toggleProfile(){document.getElementById("profilePanel").classList.toggle("hidden");}
+function toggleProfile(){showPage("profile");}
 async function saveProfile(){
   try {
     const r=await api("/api/profile",{
@@ -700,7 +821,7 @@ async function loadAdmin(){
       }
       host.appendChild(row);
     });
-    document.getElementById("adminPanel").classList.remove("hidden");
+    showPage("admin");
   }catch(e){alert(e.message);}
 }
 async function logout(){
@@ -721,7 +842,7 @@ async function checkSession(){
     finishLogin(r.user);
   }catch(e){
     document.getElementById("authScreen").classList.remove("hidden");
-    document.getElementById("menuScreen").classList.add("hidden");
+    document.getElementById("siteNav").classList.remove("visible");
   }
 }
 
@@ -931,7 +1052,7 @@ function renderBoard() {
             let r = row;
             let c = col;
 
-            if (myColor === "black") {
+            if ((myColor === "black") !== boardFlipped) {
                 r = 7 - row;
                 c = 7 - col;
             }
@@ -978,6 +1099,97 @@ function renderBoard() {
 
 
 // KARE SEÇİMİ
+
+
+function svgData(svg){return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg);}
+function standardPieceImage(type,color){
+ const fill=color==="w"?"#fffdf5":"#27342e",stroke=color==="w"?"#46534b":"#101915";
+ const paths={
+  k:'<path d="M45 8h10v12h12v9H55v10H45V29H33v-9h12z"/><path d="M25 72c2-10 8-16 14-21h22c6 5 12 11 14 21z"/><path d="M18 76h64v10H18z"/>',
+  q:'<circle cx="24" cy="19" r="7"/><circle cx="50" cy="12" r="7"/><circle cx="76" cy="19" r="7"/><path d="M24 27l8 27h36l8-27-17 12-9-18-9 18z"/><path d="M35 57h30l9 17H26z"/><path d="M19 77h62v9H19z"/>',
+  r:'<path d="M22 17h14v12h10V17h10v12h10V17h12v19H22z"/><path d="M28 38h44l-5 34H33z"/><path d="M22 75h56v11H22z"/>',
+  b:'<path d="M50 9c-19 13-21 27-8 38-10 7-15 15-16 27h48c-1-12-6-20-16-27 13-11 11-25-8-38z"/><path d="M18 77h64v9H18z"/><path d="M50 18l-5 17 10 8"/>',
+  n:'<path d="M26 73c2-18 9-31 26-42l-4-16c16 1 26 11 26 25 0 10-7 17-15 22l8 11z"/><path d="M18 76h64v10H18z"/><circle cx="61" cy="30" r="3" fill="'+stroke+'"/>',
+  p:'<circle cx="50" cy="24" r="15"/><path d="M38 40h24l8 30H30z"/><path d="M22 75h56v11H22z"/>'
+ };
+ return svgData('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="'+fill+'" stroke="'+stroke+'" stroke-width="3" stroke-linejoin="round">'+paths[type]+'</g></svg>');
+}
+function customPieceImage(style,color,symbol){
+ const palette={joker:["#7651a8","#d8c4ff"],dragon:["#9d3c35","#ffd2a8"],wizard:["#385d9b","#c6dcff"],phoenix:["#b65b22","#ffe0a3"],golem:["#65736a","#d5dfd4"],archer:["#47745b","#cce6d3"],assassin:["#45404f","#d5cce0"],royal:["#a27a28","#f5e3a8"]};
+ const p=palette[style]||palette.joker,main=color==="w"?"#fff8e9":p[0],edge=color==="w"?p[0]:"#1d2823";
+ const shapes={
+  joker:'<path d="M50 12c-12 0-20 9-20 20 0 8 5 13 12 17L25 70h50L58 49c7-4 12-9 12-17 0-11-8-20-20-20z"/><path d="M20 75h60v10H20z"/>',
+  dragon:'<path d="M50 12l-9 17-20-8 12 25-12 18h58L67 46l12-25-20 8z"/><path d="M20 75h60v10H20z"/>',
+  wizard:'<path d="M50 8L25 48h15l-10 25h40L60 48h15z"/><path d="M20 77h60v9H20z"/>',
+  phoenix:'<path d="M50 10c-5 20-25 20-20 44 5-5 10-6 15-6-9 13-8 21 5 26 13-5 14-13 5-26 5 0 10 1 15 6 5-24-15-24-20-44z"/>',
+  golem:'<path d="M30 20h40v18h10v34H20V38h10z"/><path d="M20 76h60v9H20z"/>',
+  archer:'<path d="M28 18h44v12H28zM40 30h20v38H40z"/><path d="M22 73h56v12H22z"/>',
+  assassin:'<path d="M50 10l24 20-8 37H34l-8-37z"/><path d="M20 75h60v10H20z"/>',
+  royal:'<path d="M25 23l13 12 12-23 12 23 13-12-7 42H32z"/><path d="M20 75h60v10H20z"/>'
+ };
+ return svgData('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="'+main+'" stroke="'+edge+'" stroke-width="3" stroke-linejoin="round">'+(shapes[style]||shapes.joker)+'</g><circle cx="50" cy="47" r="10" fill="'+p[1]+'" stroke="'+edge+'" stroke-width="2"/><text x="50" y="52" text-anchor="middle" font-size="13" font-weight="bold" fill="'+edge+'">'+String(symbol||"★").replace(/[&<>"]/g,"")+'</text></svg>');
+}
+async function loadCustomPieces(){
+ try{
+  const r=await api("/api/custom-pieces",undefined,"GET");customPieceCache=r.pieces||[];
+  const defaults=[
+   {id:"d-joker",name:"Joker",symbol:"J",style:"joker",movement:"Vezir gibi düz/çapraz ve at gibi L şeklinde hareket etmesi tasarlanır."},
+   {id:"d-dragon",name:"Ejderha",symbol:"D",style:"dragon",movement:"Çapraz yönde uzun hareket ve kısa düz sıçrama tasarımı."},
+   {id:"d-wizard",name:"Büyücü",symbol:"B",style:"wizard",movement:"Her yönde iki kareye kadar hareket eden büyülü taş tasarımı."},
+   {id:"d-phoenix",name:"Anka Kuşu",symbol:"A",style:"phoenix",movement:"Çapraz hareket ve bir kez geri dönüş yeteneği için tasarım."},
+   {id:"d-golem",name:"Golem",symbol:"G",style:"golem",movement:"Düz yönde bir veya iki kare ilerleyen ağır taş tasarımı."},
+   {id:"d-archer",name:"Okçu",symbol:"O",style:"archer",movement:"Düz yönde ilerler; saldırı kuralı ayrı özel modda tanımlanır."},
+   {id:"d-assassin",name:"Suikastçı",symbol:"S",style:"assassin",movement:"At gibi sıçrama ve kısa çapraz hareket tasarımı."},
+   {id:"d-royal",name:"Kraliyet",symbol:"R",style:"royal",movement:"Her yönde bir kare hareket eden koruma taşı tasarımı."}
+  ];
+  const all=[...defaults,...customPieceCache];const host=document.getElementById("pieceCatalog");host.innerHTML="";
+  all.forEach(p=>{const card=document.createElement("article");card.className="piece-card";
+   const img=document.createElement("img");img.className="piece-art";img.alt=p.name;img.src=customPieceImage(p.style,"w",p.symbol);
+   const title=document.createElement("h3");title.textContent=p.name;
+   const desc=document.createElement("p");desc.textContent=p.id.toString().startsWith("d-")?"Örnek özel taş tasarımı":"Yönetici tarafından eklenen özel taş";
+   const move=document.createElement("div");move.className="piece-move";move.textContent=p.movement;
+   card.append(img,title,desc,move);
+   if(currentUser&&currentUser.is_admin&&!String(p.id).startsWith("d-")){const del=document.createElement("button");del.textContent="Koleksiyondan sil";del.onclick=()=>deleteCustomPiece(p.id);card.appendChild(del);}
+   host.appendChild(card);
+  });
+  const select=document.getElementById("sandboxPiece");select.innerHTML="";
+  ["wK","wQ","wR","wB","wN","wP","bK","bQ","bR","bB","bN","bP"].forEach(code=>{const o=document.createElement("option");o.value=code;o.textContent=(code[0]==="w"?"Beyaz ":"Siyah ")+({K:"Şah",Q:"Vezir",R:"Kale",B:"Fil",N:"At",P:"Piyon"}[code[1]]);select.appendChild(o);});
+  all.forEach(p=>{const o=document.createElement("option");o.value="x:"+p.id;o.textContent="Özel: "+p.name;select.appendChild(o);});
+  renderSandbox();
+ }catch(e){document.getElementById("pieceCatalog").textContent=e.message;}
+}
+function renderSandbox(){
+ const host=document.getElementById("sandboxBoard");if(!host)return;host.innerHTML="";
+ sandboxCells.forEach((piece,i)=>{const cell=document.createElement("div");cell.className="sandbox-square";if(piece){const img=document.createElement("img");img.src=piece.startsWith("x:")?customPieceImage((customPieceCache.find(p=>"x:"+p.id===piece)||{}).style||"joker","w",(customPieceCache.find(p=>"x:"+p.id===piece)||{}).symbol||"★"):standardPieceImage(piece[1].toLowerCase(),piece[0]);cell.appendChild(img);}
+ cell.onclick=()=>{const chosen=document.getElementById("sandboxPiece").value;sandboxCells[i]=chosen||null;renderSandbox();};host.appendChild(cell);});
+}
+function clearSandbox(){sandboxCells=Array(64).fill(null);renderSandbox();}
+async function createCustomPiece(){
+ try{const r=await api("/api/admin/custom-pieces",{name:document.getElementById("newPieceName").value,symbol:document.getElementById("newPieceSymbol").value,movement:document.getElementById("newPieceMovement").value,style:document.getElementById("newPieceStyle").value});
+ document.getElementById("pieceAdminMessage").textContent=r.piece.name+" koleksiyona eklendi.";document.getElementById("newPieceName").value="";document.getElementById("newPieceMovement").value="";loadCustomPieces();}
+ catch(e){document.getElementById("pieceAdminMessage").textContent=e.message;}
+}
+async function deleteCustomPiece(id){if(!confirm("Bu özel taş koleksiyondan silinsin mi?"))return;try{await api("/api/admin/custom-pieces/"+id,undefined,"DELETE");loadCustomPieces();}catch(e){alert(e.message);}}
+async function loadLeaderboardPage(){
+ try{const r=await api("/api/leaderboard",undefined,"GET");const host=document.getElementById("leaderboardPageList");host.innerHTML="";
+ r.players.forEach((p,i)=>{const row=document.createElement("div");row.className="data-row";const a=document.createElement("div");a.textContent=(i+1)+". "+p.username;const b=document.createElement("strong");b.textContent=p.rating+" ELO · "+p.wins+" galibiyet";row.append(a,b);host.appendChild(row);});
+ if(!r.players.length)host.textContent="Henüz sıralama oluşmadı.";
+ }catch(e){document.getElementById("leaderboardPageList").textContent=e.message;}
+}
+async function loadFriendsPage(){
+ try{const r=await api("/api/friends",undefined,"GET");const incoming=document.getElementById("incomingFriendsPage"),friends=document.getElementById("friendsPageList");incoming.innerHTML="";friends.innerHTML="";
+ r.incoming.forEach(x=>{const row=document.createElement("div");row.className="data-row";const t=document.createElement("span");t.textContent=x.username+" arkadaşlık isteği gönderdi.";const b=document.createElement("button");b.textContent="Kabul et";b.onclick=async()=>{await api("/api/friends/"+x.id+"/accept",{});loadFriendsPage();};row.append(t,b);incoming.appendChild(row);});
+ r.friends.forEach(x=>{const row=document.createElement("div");row.className="data-row";row.textContent=x.username;friends.appendChild(row);});
+ if(!r.incoming.length)incoming.textContent="Bekleyen istek yok.";if(!r.friends.length)friends.textContent="Henüz arkadaş eklenmemiş.";
+ }catch(e){document.getElementById("incomingFriendsPage").textContent=e.message;}
+}
+async function sendFriendRequestFromPage(){try{await api("/api/friends/request",{username:document.getElementById("friendUsernamePage").value});document.getElementById("friendUsernamePage").value="";loadFriendsPage();alert("Arkadaşlık isteği gönderildi.");}catch(e){alert(e.message);}}
+async function loadHistoryPage(){
+ try{const r=await api("/api/history",undefined,"GET");const host=document.getElementById("historyPageList");host.innerHTML="";
+ r.games.forEach(g=>{const row=document.createElement("div");row.className="data-row";const t=document.createElement("div");t.textContent=g.white+" — "+g.black;const b=document.createElement("strong");b.textContent=g.result==="draw"?"Berabere":(g.result==="white"?"Beyaz kazandı":"Siyah kazandı");const d=document.createElement("small");d.textContent=g.date;row.append(t,b,d);host.appendChild(row);});
+ if(!r.games.length)host.textContent="Henüz tamamlanmış maçın yok.";
+ }catch(e){document.getElementById("historyPageList").textContent=e.message;}
+}
 
 function flipBoard() {
     boardFlipped = !boardFlipped;
