@@ -973,8 +973,7 @@ function enterGame(data) {
 
     localStorage.setItem("chess_room", roomCode);
 
-    document.getElementById("menuScreen").style.display = "none";
-    document.getElementById("gameScreen").style.display = "block";
+    showPage("play");
 
     document.getElementById("roomCode").textContent = roomCode;
 
@@ -1082,8 +1081,11 @@ function renderBoard() {
 
             if (piece) {
                 const color = piece.color === "w" ? "w" : "b";
-                square.textContent =
-                    pieces[color + piece.type.toUpperCase()];
+                const image = document.createElement("img");
+                image.className = "piece-image";
+                image.alt = piece.type.toUpperCase();
+                image.src = standardPieceImage(piece.type, piece.color);
+                square.appendChild(image);
 
                 square.classList.add(
                     piece.color === "w" ? "white-piece" : "black-piece"
@@ -1310,8 +1312,7 @@ function backToMenu() {
     currentStatus = null;
     chess = new Chess();
 
-    document.getElementById("gameScreen").style.display = "none";
-    document.getElementById("menuScreen").style.display = "block";
+    showPage("play");
     document.getElementById("roomInput").value = "";
 }
 
