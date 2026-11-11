@@ -840,6 +840,8 @@ async function logout(){
   localStorage.removeItem("chess_room");
   document.getElementById("gameScreen").style.display="none";
   document.getElementById("menuScreen").classList.add("hidden");
+  document.getElementById("siteNav").classList.remove("visible");
+  document.querySelectorAll(".site-view").forEach(el=>el.classList.remove("active"));
   document.getElementById("accountBar").classList.add("hidden");
   document.getElementById("profilePanel").classList.add("hidden");
   document.getElementById("adminPanel").classList.add("hidden");
