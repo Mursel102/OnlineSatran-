@@ -21,7 +21,10 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 db = SQLAlchemy(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
@@ -94,7 +97,8 @@ def user_public(user):
         "bio": user.bio or "",
         "avatar_color": user.avatar_color or "#eab308",
         "has_avatar": bool(user.avatar_image),
-        "created_at": user.created_at.strftime("%d.%m.%Y")
+        "created_at": user.created_at.strftime("%d.%m.%Y"),
+        "is_admin": bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower()
     }
 
 
@@ -134,9 +138,18 @@ def register():
     db.session.commit()
     try:
         send_email(email, "Online Satranç - E-posta doğrulama", f"Merhaba {username},\n\nDoğrulama kodun: {code}\nBu kod 15 dakika geçerlidir.")
-        admin_email = os.environ.get("ADMIN_EMAIL", "").strip()
-        if admin_email:
+    except Exception:
+        db.session.delete(user)
+        db.session.commit()
+        app.logger.exception("Verification email failed")
+        return jsonify(ok=False, error="Doğrulama e-postası gönderilemedi. Adresi kontrol et veya daha sonra tekrar dene."), 502
+
+    admin_email = os.environ.get("ADMIN_EMAIL", "").strip()
+    if admin_email:
+        try:
             send_email(admin_email, "Yeni Online Satranç kaydı", f"Yeni hesap kaydı:\nKullanıcı adı: {username}\nE-posta: {email}\nKayıt tarihi: {user.created_at:%d.%m.%Y %H:%M} UTC\n\nŞifre güvenlik nedeniyle bildirilmez.")
+        except Exception:
+            app.logger.exception("Admin notification email failed")
     except Exception:
         db.session.delete(user)
         db.session.commit()
