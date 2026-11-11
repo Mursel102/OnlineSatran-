@@ -366,11 +366,7 @@ function sendChatMessage(){
  const el=document.getElementById("chatInput"),message=el.value.trim();
  if(message&&roomCode){socket.emit("chat_message",{code:roomCode,message});el.value="";}
 }
-socket.on("chat_message",data=>{
- const box=document.getElementById("chatMessages"),line=document.createElement("div");
- line.textContent=data.time+" "+data.username+": "+data.message;
- box.appendChild(line);box.scrollTop=box.scrollHeight;
-});
+
 
 let playerId = localStorage.getItem("chess_player_id");
 
@@ -490,6 +486,12 @@ const socket = io({
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000
+});
+
+socket.on("chat_message",data=>{
+ const box=document.getElementById("chatMessages"),line=document.createElement("div");
+ line.textContent=data.time+" "+data.username+": "+data.message;
+ box.appendChild(line);box.scrollTop=box.scrollHeight;
 });
 
 let roomCode = localStorage.getItem("chess_room") || "";
