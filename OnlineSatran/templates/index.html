@@ -1146,7 +1146,8 @@ async function loadCustomPieces(){
    {id:"d-assassin",name:"Suikastçı",symbol:"S",style:"assassin",movement:"At gibi sıçrama ve kısa çapraz hareket tasarımı."},
    {id:"d-royal",name:"Kraliyet",symbol:"R",style:"royal",movement:"Her yönde bir kare hareket eden koruma taşı tasarımı."}
   ];
-  const all=[...defaults,...customPieceCache];const host=document.getElementById("pieceCatalog");host.innerHTML="";
+  customPieceCache=[...defaults,...customPieceCache];
+  const all=customPieceCache;const host=document.getElementById("pieceCatalog");host.innerHTML="";
   all.forEach(p=>{const card=document.createElement("article");card.className="piece-card";
    const img=document.createElement("img");img.className="piece-art";img.alt=p.name;img.src=customPieceImage(p.style,"w",p.symbol);
    const title=document.createElement("h3");title.textContent=p.name;
