@@ -1168,11 +1168,11 @@ async function loadCustomPieces(){
   const r=await api("/api/custom-pieces",undefined,"GET");customPieceCache=r.pieces||[];
   const defaults=[
    {id:"d-joker",name:"Joker",symbol:"J",style:"joker",movement:"Vezir gibi düz/çapraz ve at gibi L şeklinde hareket etmesi tasarlanır."},
-   {id:"d-dragon",name:"Ejderha",symbol:"D",style:"dragon",movement:"Çapraz yönde uzun hareket ve kısa düz sıçrama tasarımı."},
+   {id:"d-dragon",name:"Ejderha",symbol:"D",style:"dragon",movement:"Fil gibi çapraz ilerler ve at gibi L şeklinde sıçrar."},
    {id:"d-wizard",name:"Büyücü",symbol:"B",style:"wizard",movement:"Her yönde iki kareye kadar hareket eden büyülü taş tasarımı."},
-   {id:"d-phoenix",name:"Anka Kuşu",symbol:"A",style:"phoenix",movement:"Çapraz hareket ve bir kez geri dönüş yeteneği için tasarım."},
+   {id:"d-phoenix",name:"Anka Kuşu",symbol:"A",style:"phoenix",movement:"Çapraz yönde en fazla üç kare, ayrıca bir kare ileri gider."},
    {id:"d-golem",name:"Golem",symbol:"G",style:"golem",movement:"Düz yönde bir veya iki kare ilerleyen ağır taş tasarımı."},
-   {id:"d-archer",name:"Okçu",symbol:"O",style:"archer",movement:"Düz yönde ilerler; saldırı kuralı ayrı özel modda tanımlanır."},
+   {id:"d-archer",name:"Okçu",symbol:"O",style:"archer",movement:"Yatay veya dikey yönde en fazla üç kare ilerler."},
    {id:"d-assassin",name:"Suikastçı",symbol:"S",style:"assassin",movement:"At gibi sıçrama ve kısa çapraz hareket tasarımı."},
    {id:"d-royal",name:"Kraliyet",symbol:"R",style:"royal",movement:"Her yönde bir kare hareket eden koruma taşı tasarımı."}
   ];
