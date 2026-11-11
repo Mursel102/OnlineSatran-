@@ -232,7 +232,7 @@ button:hover { background: #facc15; }
 
 <div id="adminPanel" class="panel hidden">
   <h2>Yönetici paneli</h2>
-  <p class="small-note">Kullanıcı adı, e-posta ve kayıt tarihi görünür. Şifreler hiçbir zaman gösterilmez.</p>
+  <p class="small-note">Kullanıcı adı ve kayıt tarihi görünür. Şifreler hiçbir zaman gösterilmez.</p>
   <div id="adminUsers"></div>
   <button type="button" onclick="document.getElementById('adminPanel').classList.add('hidden')">Kapat</button>
 </div>
@@ -317,7 +317,6 @@ function authMessage(message, error=false) {
 function showAuthTab(tab) {
   document.getElementById("loginForm").classList.toggle("active",tab==="login");
   document.getElementById("registerForm").classList.toggle("active",tab==="register");
-  document.getElementById("verifyForm").classList.remove("active");
   authMessage("");
 }
 async function register() {
