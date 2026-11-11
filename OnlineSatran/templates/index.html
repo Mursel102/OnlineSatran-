@@ -372,6 +372,14 @@ socket.on("chat_message",data=>{
  box.appendChild(line);box.scrollTop=box.scrollHeight;
 });
 
+let playerId = localStorage.getItem("chess_player_id");
+
+if (!playerId) {
+    playerId = "player_" + Math.random().toString(36).slice(2) + Date.now();
+    localStorage.setItem("chess_player_id", playerId);
+}
+
+
 function finishLogin(user) {
   currentUser=user; playerId=user.id;
   document.getElementById("authScreen").classList.add("hidden");
@@ -483,13 +491,6 @@ const socket = io({
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000
 });
-
-let playerId = localStorage.getItem("chess_player_id");
-
-if (!playerId) {
-    playerId = "player_" + Math.random().toString(36).slice(2) + Date.now();
-    localStorage.setItem("chess_player_id", playerId);
-}
 
 let roomCode = localStorage.getItem("chess_room") || "";
 let myColor = null;
