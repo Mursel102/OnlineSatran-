@@ -3,192 +3,308 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Online Satranç</title>
 
-<!-- Güncel Socket.IO istemcisi -->
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 
 <style>
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
-    padding: 18px;
+    min-height: 100vh;
     background: #111827;
     color: white;
     font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
 }
 
 .container {
-    max-width: 520px;
-    margin: auto;
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
 }
 
 h1 {
-    text-align: center;
     color: #facc15;
+    margin-bottom: 8px;
 }
 
 .panel {
     background: #1f2937;
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 15px;
-}
-
-input, button {
-    width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 9px;
-    margin: 5px 0;
-    font-size: 16px;
+    padding: 22px;
+    border-radius: 15px;
+    margin: 15px auto;
+    max-width: 450px;
 }
 
 input {
-    background: #374151;
+    width: 100%;
+    padding: 13px;
+    margin: 8px 0;
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    background: #111827;
     color: white;
+    font-size: 16px;
+    text-align: center;
 }
 
 button {
+    border: none;
+    padding: 13px 18px;
+    margin: 5px;
+    border-radius: 8px;
     background: #eab308;
     color: #111827;
+    font-size: 15px;
     font-weight: bold;
     cursor: pointer;
 }
 
+button:hover {
+    background: #facc15;
+}
+
 button:disabled {
-    opacity: .5;
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-#status {
-    text-align: center;
-    font-size: 17px;
-    margin: 15px 0;
+#gameScreen {
+    display: none;
 }
 
-#board {
+.game-layout {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.board {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    width: 100%;
+    width: min(80vw, 520px);
     aspect-ratio: 1;
-    border: 4px solid #374151;
+    border: 5px solid #374151;
     border-radius: 5px;
     overflow: hidden;
 }
 
 .square {
-    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(25px, 8vw, 47px);
-    padding: 0;
-    margin: 0;
-    border-radius: 0;
     position: relative;
-    line-height: 1;
+    aspect-ratio: 1;
+    cursor: pointer;
+    font-family: "Segoe UI Symbol", "DejaVu Sans", serif;
+    font-size: clamp(23px, 7vw, 53px);
     user-select: none;
 }
 
-.light { background: #f0d9b5; }
-.dark { background: #b58863; }
+.light {
+    background: #f0d9b5;
+}
+
+.dark {
+    background: #b58863;
+}
 
 .selected {
     background: #eab308 !important;
 }
 
-.target::after {
+.possible::after {
     content: "";
-    width: 24%;
-    height: 24%;
-    border-radius: 50%;
-    background: #166534;
-    opacity: .75;
     position: absolute;
+    width: 23%;
+    height: 23%;
+    background: #166534;
+    border-radius: 50%;
+    opacity: 0.65;
 }
 
-.last {
-    box-shadow: inset 0 0 0 4px #facc15;
+.capture::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border: 5px solid #166534;
+    border-radius: 50%;
+    opacity: 0.65;
 }
 
 .white-piece {
     color: #fff;
-    text-shadow: 1px 2px 2px #222;
+    text-shadow: 1px 2px 2px #333;
 }
 
 .black-piece {
     color: #171717;
 }
 
-#history {
-    max-height: 130px;
-    overflow-y: auto;
-    line-height: 1.8;
-    overflow-wrap: anywhere;
+.side-panel {
+    background: #1f2937;
+    border-radius: 12px;
+    padding: 18px;
+    width: 250px;
+    text-align: left;
 }
 
-.small {
-    color: #9ca3af;
+.status {
+    background: #111827;
+    border-radius: 8px;
+    padding: 13px;
+    margin: 12px 0;
     text-align: center;
-    font-size: 13px;
+    min-height: 45px;
 }
 
-#game { display: none; }
+.room-code {
+    color: #facc15;
+    font-size: 23px;
+    font-weight: bold;
+    letter-spacing: 3px;
+}
+
+#moveList {
+    max-height: 180px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+#connection {
+    color: #facc15;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+@media(max-width: 600px) {
+    body {
+        padding: 8px;
+        align-items: flex-start;
+    }
+
+    .panel {
+        padding: 15px;
+    }
+
+    .game-layout {
+        gap: 10px;
+    }
+
+    .board {
+        width: min(94vw, 520px);
+    }
+
+    .side-panel {
+        width: min(94vw, 520px);
+    }
+}
 </style>
 </head>
 
 <body>
+
 <div class="container">
 
-<h1>♟ ONLINE SATRANÇ</h1>
+    <h1>♟ ONLINE SATRANÇ</h1>
+    <p>Arkadaşınla internet üzerinden satranç oyna.</p>
 
-<div class="panel" id="lobby">
-    <h3>Yeni oyun oluştur</h3>
-    <button onclick="createRoom()">Oda Oluştur</button>
+    <div id="menuScreen" class="panel">
 
-    <hr style="border-color:#374151">
+        <h2>Oyun menüsü</h2>
 
-    <h3>Odaya katıl</h3>
-    <input id="roomInput" maxlength="6"
-           placeholder="6 karakterli oda kodu">
-    <button onclick="joinGame()">Oyuna Katıl</button>
-</div>
+        <button onclick="createRoom()">Oda oluştur</button>
 
-<div id="game">
+        <hr style="border-color:#374151;margin:20px 0;">
 
-    <div class="panel">
-        <div id="roomInfo">Oda: -</div>
-        <div id="myColor">Renk: -</div>
-        <button onclick="copyRoom()">Oda Kodunu Kopyala</button>
+        <h3>Odaya katıl</h3>
+
+        <input
+            id="roomInput"
+            type="text"
+            maxlength="6"
+            placeholder="6 haneli oda kodu"
+        >
+
+        <button onclick="joinGame()">Odaya katıl</button>
+
+        <div id="connection">Sunucuya bağlanılıyor...</div>
+
     </div>
 
-    <div id="status">Bağlanıyor...</div>
 
-    <div id="board"></div>
+    <div id="gameScreen">
 
-    <div class="panel">
-        <h3>Hamle Geçmişi</h3>
-        <div id="history">Henüz hamle yapılmadı.</div>
-    </div>
+        <div class="status" id="gameStatus">
+            Oyun yükleniyor...
+        </div>
 
-    <div class="panel">
-        <button onclick="location.reload()">Lobiye Dön</button>
+        <div class="game-layout">
+
+            <div>
+                <div class="board" id="board"></div>
+            </div>
+
+            <div class="side-panel">
+
+                <h3>Oyun bilgileri</h3>
+
+                <p>Oda kodu:</p>
+                <div class="room-code" id="roomCode">------</div>
+
+                <button onclick="copyRoomCode()">Kodu kopyala</button>
+
+                <hr style="border-color:#374151;">
+
+                <p>Senin rengin:</p>
+                <h3 id="myColor">-</h3>
+
+                <p>Beyaz oyuncu:</p>
+                <span id="whitePlayer">Bekleniyor</span>
+
+                <p>Siyah oyuncu:</p>
+                <span id="blackPlayer">Bekleniyor</span>
+
+                <hr style="border-color:#374151;">
+
+                <h3>Hamleler</h3>
+                <div id="moveList">Henüz hamle yok.</div>
+
+                <hr style="border-color:#374151;">
+
+                <button onclick="backToMenu()">Menüye dön</button>
+
+            </div>
+
+        </div>
+
     </div>
 
 </div>
 
-<div class="small" id="connection">Sunucuya bağlanılıyor...</div>
-
-</div>
 
 <script>
+"use strict";
 
-// Socket.IO bağlantısı
+// -----------------------------
+// BAĞLANTI
+// -----------------------------
+
 const socket = io({
-    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000
@@ -198,63 +314,80 @@ let playerId = localStorage.getItem("chess_player_id");
 
 if (!playerId) {
     playerId = (
-        window.crypto && crypto.randomUUID
-    ) ? crypto.randomUUID() :
-      Date.now().toString(36) + Math.random().toString(36).slice(2);
+        "player_" +
+        Math.random().toString(36).substring(2) +
+        Date.now().toString(36)
+    );
 
     localStorage.setItem("chess_player_id", playerId);
 }
 
-let roomCode = "";
-let myColor = "";
-let game = new Chess();
-let selected = null;
-let legalTargets = [];
-let lastMove = null;
-let gameFinished = false;
+let roomCode = localStorage.getItem("chess_room") || "";
+let myColor = null;
+let chess = new Chess();
+let selectedSquare = null;
+let possibleMoves = [];
+let currentStatus = null;
+
+
+// -----------------------------
+// TAŞLAR
+// -----------------------------
 
 const pieces = {
-    w: {
-        k:"♔", q:"♕", r:"♖",
-        b:"♗", n:"♘", p:"♙"
-    },
-    b: {
-        k:"♚", q:"♛", r:"♜",
-        b:"♝", n:"♞", p:"♟︎"
-    }
+    wK: "♔",
+    wQ: "♕",
+    wR: "♖",
+    wB: "♗",
+    wN: "♘",
+    wP: "♙",
+
+    bK: "♚",
+    bQ: "♛",
+    bR: "♜",
+    bB: "♝",
+    bN: "♞",
+    bP: "♟"
 };
 
-// Bağlantı başarılı
+
+// -----------------------------
+// BAĞLANTI DURUMU
+// -----------------------------
+
 socket.on("connect", () => {
     document.getElementById("connection").textContent =
         "Sunucuya bağlandı.";
 
-    const oldRoom = localStorage.getItem("chess_room");
-
-    if (oldRoom) {
+    if (roomCode) {
         socket.emit("rejoin_game", {
-            code: oldRoom,
+            code: roomCode,
             player_id: playerId
         });
     }
 });
 
-// Bağlantı hatası
-socket.on("connect_error", error => {
-    document.getElementById("connection").textContent =
-        "Bağlantı hatası: " + error.message;
-    console.error("Socket.IO bağlantı hatası:", error);
-});
-
-socket.on("disconnect", reason => {
+socket.on("disconnect", () => {
     document.getElementById("connection").textContent =
         "Bağlantı kesildi. Yeniden bağlanılıyor...";
-    console.log("Bağlantı kesildi:", reason);
 });
 
+socket.on("connect_error", error => {
+    console.error("Socket bağlantı hatası:", error.message);
+
+    document.getElementById("connection").textContent =
+        "Sunucu bağlantı hatası.";
+});
+
+
+// -----------------------------
+// ODA OLUŞTURMA
+// -----------------------------
+
 function createRoom() {
+
     if (!socket.connected) {
-        alert("Sunucuya henüz bağlanılmadı. Biraz bekle.");
+        alert("Sunucuya henüz bağlanılmadı.");
         return;
     }
 
@@ -263,17 +396,26 @@ function createRoom() {
     });
 }
 
+
+// -----------------------------
+// ODAYA KATILMA
+// -----------------------------
+
 function joinGame() {
+
     if (!socket.connected) {
-        alert("Sunucuya henüz bağlanılmadı. Biraz bekle.");
+        alert("Sunucuya henüz bağlanılmadı.");
         return;
     }
 
-    const code = document.getElementById("roomInput")
-        .value.trim().toUpperCase();
+    const code = document
+        .getElementById("roomInput")
+        .value
+        .trim()
+        .toUpperCase();
 
     if (code.length !== 6) {
-        alert("Oda kodu 6 karakter olmalı.");
+        alert("6 haneli oda kodunu gir.");
         return;
     }
 
@@ -283,6 +425,11 @@ function joinGame() {
     });
 }
 
+
+// -----------------------------
+// ODA CEVAPLARI
+// -----------------------------
+
 socket.on("room_created", data => {
     enterGame(data);
 });
@@ -291,67 +438,112 @@ socket.on("room_joined", data => {
     enterGame(data);
 });
 
+socket.on("error_message", message => {
+    alert(message);
+});
+
 function enterGame(data) {
+
     roomCode = data.code;
     myColor = data.color;
 
     localStorage.setItem("chess_room", roomCode);
 
-    document.getElementById("lobby").style.display = "none";
-    document.getElementById("game").style.display = "block";
+    document.getElementById("menuScreen").style.display = "none";
+    document.getElementById("gameScreen").style.display = "block";
 
-    document.getElementById("roomInfo").textContent =
-        "Oda: " + roomCode;
+    document.getElementById("roomCode").textContent = roomCode;
 
     document.getElementById("myColor").textContent =
-        "Sen: " + (myColor === "white" ? "Beyaz ♔" : "Siyah ♚");
+        myColor === "white" ? "Beyaz" : "Siyah";
+
+    selectedSquare = null;
+    possibleMoves = [];
 
     renderBoard();
 }
 
+
+// -----------------------------
+// OYUN DURUMU
+// -----------------------------
+
 socket.on("game_state", data => {
-    game = new Chess(data.fen);
-    selected = null;
-    legalTargets = [];
-    lastMove = data.last_move;
-    gameFinished = data.status.finished;
 
-    document.getElementById("status").textContent =
-        data.status.text;
-
-    const waiting = !data.players.black || !data.players.white;
-
-    if (waiting) {
-        document.getElementById("status").textContent =
-            "Rakip bekleniyor...";
+    try {
+        chess.load(data.fen);
+    } catch (error) {
+        console.error("FEN hatası:", error);
+        return;
     }
 
-    document.getElementById("history").textContent =
-        data.moves.length ?
-        data.moves.map((m, i) =>
-            (Math.floor(i / 2) + 1) + ". " + m
-        ).join("   ") :
-        "Henüz hamle yapılmadı.";
+    currentStatus = data.status;
+
+    selectedSquare = null;
+    possibleMoves = [];
+
+    document.getElementById("gameStatus").textContent =
+        data.status.text;
+
+    document.getElementById("whitePlayer").textContent =
+        data.players.white ? "Bağlandı" : "Bekleniyor";
+
+    document.getElementById("blackPlayer").textContent =
+        data.players.black ? "Bağlandı" : "Bekleniyor";
+
+    updateMoveList(data.moves);
 
     renderBoard();
 });
 
-socket.on("error_message", message => {
-    alert(message);
+socket.on("player_disconnected", data => {
+    alert(data.message);
 });
 
-socket.on("player_disconnected", data => {
-    document.getElementById("status").textContent =
-        data.message;
-});
+
+// -----------------------------
+// HAMLE LİSTESİ
+// -----------------------------
+
+function updateMoveList(moves) {
+
+    const element = document.getElementById("moveList");
+
+    if (!moves || moves.length === 0) {
+        element.textContent = "Henüz hamle yok.";
+        return;
+    }
+
+    let output = "";
+
+    for (let i = 0; i < moves.length; i += 2) {
+        output +=
+            Math.floor(i / 2 + 1) +
+            ". " +
+            moves[i] +
+            " " +
+            (moves[i + 1] || "") +
+            "<br>";
+    }
+
+    element.innerHTML = output;
+}
+
+
+// -----------------------------
+// TAHTA OLUŞTURMA
+// -----------------------------
 
 function renderBoard() {
-    const boardElement = document.getElementById("board");
-    boardElement.innerHTML = "";
 
-    const position = game.board();
+    const board = document.getElementById("board");
+
+    board.innerHTML = "";
+
+    const position = chess.board();
 
     for (let row = 0; row < 8; row++) {
+
         for (let col = 0; col < 8; col++) {
 
             let r = row;
@@ -367,99 +559,198 @@ function renderBoard() {
 
             const piece = position[r][c];
 
-            const cell = document.createElement("button");
-            cell.className = "square " +
+            const square = document.createElement("div");
+
+            square.className =
+                "square " +
                 ((r + c) % 2 === 0 ? "light" : "dark");
 
-            if (selected === squareName) {
-                cell.classList.add("selected");
+            if (selectedSquare === squareName) {
+                square.classList.add("selected");
             }
 
-            if (legalTargets.includes(squareName)) {
-                cell.classList.add("target");
-            }
+            const isPossible = possibleMoves.some(
+                move => move.to === squareName
+            );
 
-            if (
-                lastMove &&
-                (lastMove.slice(0, 2) === squareName ||
-                 lastMove.slice(2, 4) === squareName)
-            ) {
-                cell.classList.add("last");
+            if (isPossible) {
+                if (piece) {
+                    square.classList.add("capture");
+                } else {
+                    square.classList.add("possible");
+                }
             }
 
             if (piece) {
-                cell.textContent =
-                    pieces[piece.color][piece.type];
 
-                cell.classList.add(
-                    piece.color === "w" ?
-                    "white-piece" : "black-piece"
+                const color = piece.color === "w" ? "w" : "b";
+                const symbol = pieces[color + piece.type.toUpperCase()];
+
+                square.textContent = symbol;
+
+                square.classList.add(
+                    piece.color === "w"
+                        ? "white-piece"
+                        : "black-piece"
                 );
             }
 
-            cell.onclick = () => clickSquare(squareName);
+            square.addEventListener("click", () => {
+                clickSquare(squareName);
+            });
 
-            boardElement.appendChild(cell);
+            board.appendChild(square);
         }
     }
 }
 
+
+// -----------------------------
+// KARE SEÇME
+// -----------------------------
+
 function clickSquare(square) {
-    if (!roomCode || !myColor || gameFinished) return;
 
-    const turn = game.turn() === "w" ? "white" : "black";
+    if (!roomCode || !myColor) return;
 
-    if (turn !== myColor) return;
+    if (currentStatus && currentStatus.finished) return;
 
-    const piece = game.get(square);
+    const myTurn =
+        (myColor === "white" && chess.turn() === "w") ||
+        (myColor === "black" && chess.turn() === "b");
 
-    if (selected) {
-        if (legalTargets.includes(square)) {
-            const promotionPiece =
-                game.get(selected).type === "p" &&
-                (square[1] === "8" || square[1] === "1");
+    if (!myTurn) {
+        document.getElementById("gameStatus").textContent =
+            "Rakibin hamlesini bekle.";
+        return;
+    }
 
-            const uci = selected + square +
-                (promotionPiece ? "q" : "");
+    const piece = chess.get(square);
 
-            socket.emit("make_move", {
-                code: roomCode,
-                player_id: playerId,
-                uci: uci
-            });
+    if (selectedSquare) {
 
-            selected = null;
-            legalTargets = [];
-            renderBoard();
+        const selectedMove = possibleMoves.find(
+            move => move.to === square
+        );
+
+        if (selectedMove) {
+            sendMove(selectedMove);
             return;
         }
     }
 
-    if (piece && (
-        (piece.color === "w" && myColor === "white") ||
-        (piece.color === "b" && myColor === "black")
-    )) {
-        selected = square;
+    if (
+        piece &&
+        piece.color === (myColor === "white" ? "w" : "b")
+    ) {
 
-        legalTargets = game.moves({
+        selectedSquare = square;
+
+        possibleMoves = chess.moves({
             square: square,
             verbose: true
-        }).map(m => m.to);
+        });
 
         renderBoard();
+        return;
+    }
+
+    selectedSquare = null;
+    possibleMoves = [];
+
+    renderBoard();
+}
+
+
+// -----------------------------
+// HAMLE GÖNDERME
+// -----------------------------
+
+function sendMove(move) {
+
+    let promotion = move.promotion;
+
+    if (
+        move.piece === "p" &&
+        (move.to.endsWith("8") || move.to.endsWith("1"))
+    ) {
+        promotion = prompt(
+            "Terfi taşı seç:\nq = Vezir\nr = Kale\nb = Fil\nn = At",
+            "q"
+        );
+
+        if (!promotion) return;
+
+        promotion = promotion.toLowerCase();
+
+        if (!["q", "r", "b", "n"].includes(promotion)) {
+            alert("Geçersiz taş seçimi.");
+            return;
+        }
+    }
+
+    const uci =
+        move.from +
+        move.to +
+        (promotion || "");
+
+    socket.emit("make_move", {
+        code: roomCode,
+        player_id: playerId,
+        uci: uci
+    });
+
+    selectedSquare = null;
+    possibleMoves = [];
+
+    renderBoard();
+}
+
+
+// -----------------------------
+// ODA KODU KOPYALAMA
+// -----------------------------
+
+function copyRoomCode() {
+
+    if (!roomCode) return;
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(roomCode)
+            .then(() => alert("Oda kodu kopyalandı."))
+            .catch(() => alert("Kod: " + roomCode));
     } else {
-        selected = null;
-        legalTargets = [];
-        renderBoard();
+        alert("Oda kodun: " + roomCode);
     }
 }
 
-function copyRoom() {
-    navigator.clipboard.writeText(roomCode)
-        .then(() => alert("Oda kodu kopyalandı: " + roomCode))
-        .catch(() => alert("Oda kodun: " + roomCode));
+
+// -----------------------------
+// MENÜYE DÖNME
+// -----------------------------
+
+function backToMenu() {
+
+    if (!confirm("Menüye dönmek istiyor musun?")) {
+        return;
+    }
+
+    localStorage.removeItem("chess_room");
+
+    roomCode = "";
+    myColor = null;
+    selectedSquare = null;
+    possibleMoves = [];
+
+    chess = new Chess();
+
+    document.getElementById("gameScreen").style.display = "none";
+    document.getElementById("menuScreen").style.display = "block";
+
+    document.getElementById("roomInput").value = "";
 }
 
 </script>
+
 </body>
 </html>
