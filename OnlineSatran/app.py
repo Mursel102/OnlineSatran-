@@ -159,9 +159,9 @@ def login():
     data = request.get_json(silent=True) or {}
     identity = str(data.get("identity", "")).strip()
     password = str(data.get("password", ""))
-    user = User.query.filter(db.or_(User.username.ilike(identity), User.email == identity.lower())).first()
+    user = User.query.filter(User.username.ilike(identity)).first()
     if not user or not check_password_hash(user.password_hash, password):
-        return jsonify(ok=False, error="Kullanıcı adı/e-posta veya şifre hatalı."), 401
+        return jsonify(ok=False, error="Kullanıcı adı veya şifre hatalı."), 401
     session.clear()
     session["user_id"] = user.id
     return jsonify(ok=True, user=user_public(user))
