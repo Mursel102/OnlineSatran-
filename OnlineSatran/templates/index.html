@@ -189,23 +189,17 @@ button:hover { background: #facc15; }
     <button type="button" onclick="showAuthTab('register')">Kayıt ol</button>
   </div>
   <div id="loginForm" class="auth-form active">
-    <input id="loginIdentity" autocomplete="username" placeholder="Kullanıcı adı veya e-posta">
+    <input id="loginIdentity" autocomplete="username" placeholder="Kullanıcı adı">
     <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Şifre">
     <button type="button" onclick="login()">Giriş yap</button>
   </div>
   <div id="registerForm" class="auth-form">
     <input id="regUsername" maxlength="24" autocomplete="username" placeholder="Kullanıcı adı">
-    <input id="regEmail" type="email" autocomplete="email" placeholder="E-posta adresi">
     <input id="regPassword" type="password" autocomplete="new-password" placeholder="Şifre (en az 8 karakter)">
     <button type="button" onclick="register()">Kayıt ol</button>
   </div>
-  <div id="verifyForm" class="auth-form">
-    <p>E-postana gelen 6 haneli doğrulama kodunu gir.</p>
-    <input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="Doğrulama kodu">
-    <button type="button" onclick="verifyEmail()">E-postayı doğrula</button>
-  </div>
   <p id="authMessage" class="small-note"></p>
-  <p class="small-note">Kayıt için geçerli e-posta gerekir. Şifreler güvenli biçimde hash olarak saklanır; yönetici dâhil hiç kimse mevcut şifreyi göremez.</p>
+  <p class="small-note">Hesap oluşturmak için kullanıcı adı ve şifre yeterlidir. Şifreler güvenli biçimde hash olarak saklanır; hiç kimse mevcut şifreni göremez.</p>
 </div>
 
 <div id="accountBar" class="panel hidden">
@@ -213,7 +207,7 @@ button:hover { background: #facc15; }
     <div id="miniAvatar" class="avatar">♟</div>
     <div>
       <strong id="welcomeName"></strong>
-      <div id="welcomeEmail" class="small-note"></div>
+      
     </div>
   </div>
   <button type="button" onclick="toggleProfile()">Profili düzenle</button>
@@ -330,20 +324,10 @@ async function register() {
   try {
     const r=await api("/api/register",{
       username:document.getElementById("regUsername").value,
-      email:document.getElementById("regEmail").value,
       password:document.getElementById("regPassword").value
     });
-    pendingEmail=document.getElementById("regEmail").value.trim().toLowerCase();
-    document.getElementById("loginForm").classList.remove("active");
-    document.getElementById("registerForm").classList.remove("active");
-    document.getElementById("verifyForm").classList.add("active");
-    authMessage(r.message);
-  } catch(e){authMessage(e.message,true);}
-}
-async function verifyEmail() {
-  try {
-    const r=await api("/api/verify",{email:pendingEmail,code:document.getElementById("verifyCode").value});
     finishLogin(r.user);
+    authMessage(r.message);
   } catch(e){authMessage(e.message,true);}
 }
 async function login() {
@@ -361,7 +345,6 @@ function finishLogin(user) {
   document.getElementById("accountBar").classList.remove("hidden");
   document.getElementById("menuScreen").classList.remove("hidden");
   document.getElementById("welcomeName").textContent=user.display_name || user.username;
-  document.getElementById("welcomeEmail").textContent=user.email;
   document.getElementById("adminOpenButton").classList.toggle("hidden", !user.is_admin);
   setAvatar("miniAvatar",user); setAvatar("profileAvatar",user);
   document.getElementById("displayName").value=user.display_name || user.username;
@@ -409,7 +392,7 @@ async function loadAdmin(){
     r.users.forEach(u=>{
       const row=document.createElement("div"); row.className="user-row";
       const info=document.createElement("span");
-      info.textContent=u.username+" · "+u.email+" · "+u.created_at;
+      info.textContent=u.username+" · "+u.created_at;
       row.appendChild(info);
       if(u.id!==currentUser.id){
         const btn=document.createElement("button"); btn.textContent="Devre dışı bırak";
