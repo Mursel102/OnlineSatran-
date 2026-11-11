@@ -171,6 +171,26 @@ button:hover { background: #facc15; }
 .user-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px;border-bottom:1px solid #374151;text-align:left}
 .hidden{display:none!important}
 
+
+/* Modern arayüz */
+:root{color-scheme:dark;--line:rgba(148,163,184,.18);--gold:#f5c451;--muted:#9aa9bd}
+body{padding:28px 16px 50px;background:radial-gradient(ellipse at 15% 0%,#1d3556 0,transparent 38%),radial-gradient(ellipse at 90% 15%,#33254d 0,transparent 32%),#090f1d;color:#eef4ff;font-family:Inter,Segoe UI,Arial,sans-serif}
+.container{max-width:1180px}.container>h1{font-size:clamp(30px,5vw,48px);letter-spacing:3px;margin:22px 0 8px;color:#f8d477;text-shadow:0 8px 30px #f5c45122}.container>p{color:var(--muted);margin-bottom:28px}
+.panel,.side-panel,.status{background:linear-gradient(145deg,rgba(29,43,67,.96),rgba(14,23,39,.96));border:1px solid var(--line);box-shadow:0 18px 55px #0005;border-radius:20px}.panel{padding:28px}
+button{background:linear-gradient(135deg,#f6d477,#e5a92f);color:#182235;border-radius:11px;padding:12px 18px;transition:transform .18s,box-shadow .18s;box-shadow:0 5px 18px #eab30820}button:hover{background:linear-gradient(135deg,#ffe59a,#f0b83e);transform:translateY(-2px);box-shadow:0 9px 22px #eab30830}button:active{transform:translateY(0)}
+input{background:#0b1424;border:1px solid #34445e;border-radius:11px;color:#f8fafc;text-align:left;outline:none}input:focus{border-color:var(--gold);box-shadow:0 0 0 3px #f5c45120}
+hr{border:0;border-top:1px solid var(--line);margin:20px 0}.auth-tabs button{background:#26364f;color:#dce7f7;box-shadow:none}.auth-tabs button:hover{background:#344967}#accountBar{max-width:850px}#accountBar .profile-row{justify-content:flex-start;text-align:left}.avatar{border-color:var(--gold);box-shadow:0 0 0 5px #f5c45115}
+#menuScreen{max-width:650px}#menuScreen h2{font-size:28px}#menuScreen button{min-width:145px}
+.game-layout{gap:24px;align-items:stretch}.game-layout>div:first-child{padding:10px;background:linear-gradient(145deg,#26354d,#111b2c);border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px #0006}
+.board{width:min(78vw,620px);border:5px solid #26364c;border-radius:5px;overflow:hidden;box-shadow:0 12px 32px #0007}.light{background:#e8dfcc}.dark{background:#78916f}.selected{background:#e9c45e!important}.possible::after{background:#315d45}.capture::after{border-color:#315d45}
+.side-panel{width:300px;padding:22px}.side-panel h3{color:#f7d783}.room-code{font-size:30px;letter-spacing:6px}.status{max-width:950px;color:#f8dfa0;font-weight:600}
+#moveList,#chatMessages{background:#0b1424;border:1px solid var(--line);border-radius:10px;padding:12px;min-height:65px}#chatMessages{height:180px!important}#connection{color:#8ee0b1}
+.dashboard-panel{max-width:1050px!important;text-align:left!important}.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}.section-heading h2{font-size:30px;margin:6px 0}.section-heading p{color:var(--muted);margin:0}.eyebrow{font-size:10px;letter-spacing:2px;font-weight:800;color:var(--gold)}
+.icon-button{min-width:42px;padding:9px 13px;background:#293951;color:#e7edf7;box-shadow:none}.dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.dashboard-card{min-width:0;padding:20px;border:1px solid var(--line);border-radius:15px;background:rgba(8,16,29,.55);overflow-wrap:anywhere}.dashboard-card h3{margin:7px 0 14px;color:#f3f6fc}.dashboard-card>div{color:#c6d2e2;line-height:1.8}.stats-card{background:linear-gradient(130deg,#263b5a,#17253b)}
+.friend-entry{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.friend-entry input{flex:1;min-width:140px;margin:0}.friend-entry button{margin:0}#friendRequests,#friendList{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}#adminPanel{max-width:950px}
+@media(max-width:760px){body{padding:14px 10px 35px}.panel{padding:19px}.dashboard-grid{grid-template-columns:1fr}.game-layout{align-items:center}.game-layout>div:first-child{padding:5px}.board{width:min(94vw,560px)}.side-panel{width:min(94vw,560px)}}
+
 </style>
 </head>
 
@@ -230,7 +250,15 @@ button:hover { background: #facc15; }
   <button type="button" onclick="toggleProfile()">Kapat</button>
 </div>
 
-<div id="dashboardPanel" class="panel hidden" style="max-width:850px;text-align:left"><h2>Oyuncu merkezi</h2><div id="myStats"></div><h3>Liderlik tablosu</h3><div id="leaderboard"></div><h3>Arkadaş ekle</h3><input id="friendUsername" placeholder="Kullanıcı adı"><button onclick="sendFriendRequest()">İstek gönder</button><div id="friendRequests"></div><div id="friendList"></div><h3>Maç geçmişi</h3><div id="gameHistory"></div><button onclick="document.getElementById(&quot;dashboardPanel&quot;).classList.add(&quot;hidden&quot;)">Kapat</button></div><div id="adminPanel" class="panel hidden">
+<div id="dashboardPanel" class="panel hidden dashboard-panel">
+  <div class="section-heading"><div><span class="eyebrow">OYUNCU ALANI</span><h2>Oyuncu merkezi</h2><p>İstatistiklerini, sıralamanı ve arkadaşlarını takip et.</p></div><button type="button" class="icon-button" onclick="document.getElementById('dashboardPanel').classList.add('hidden')">✕</button></div>
+  <div class="dashboard-grid">
+    <section class="dashboard-card stats-card"><span class="eyebrow">PERFORMANSIN</span><h3>İstatistikler</h3><div id="myStats">Veriler yükleniyor...</div></section>
+    <section class="dashboard-card"><span class="eyebrow">EN İYİ OYUNCULAR</span><h3>Liderlik tablosu</h3><div id="leaderboard">Sıralama yükleniyor...</div></section>
+    <section class="dashboard-card"><span class="eyebrow">TOPLULUK</span><h3>Arkadaş ekle</h3><div class="friend-entry"><input id="friendUsername" placeholder="Kullanıcı adı"><button type="button" onclick="sendFriendRequest()">İstek gönder</button></div><div id="friendRequests"></div><div id="friendList"></div></section>
+    <section class="dashboard-card"><span class="eyebrow">SON OYUNLAR</span><h3>Maç geçmişi</h3><div id="gameHistory">Maçlar yükleniyor...</div></section>
+  </div>
+</div><div id="adminPanel" class="panel hidden">
   <h2>Yönetici paneli</h2>
   <p class="small-note">Kullanıcı adı ve kayıt tarihi görünür. Şifreler hiçbir zaman gösterilmez.</p>
   <div id="adminUsers"></div>
