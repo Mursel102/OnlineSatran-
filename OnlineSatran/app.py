@@ -95,8 +95,8 @@ def login_required_api(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         user = current_user()
-        if not user or not user.verified:
-            return jsonify({"ok": False, "error": "Devam etmek için e-posta doğrulaması yapılmış hesabınla giriş yap."}), 401
+        if not user:
+            return jsonify({"ok": False, "error": "Giriş yapmalısın."}), 401
         return fn(*args, **kwargs)
     return wrapper
 
@@ -105,81 +105,53 @@ def user_public(user):
     return {
         "id": user.id,
         "username": user.username,
-        "email": user.email,
-        "display_name": user.display_name or user.username,
+                "display_name": user.display_name or user.username,
         "bio": user.bio or "",
         "avatar_color": user.avatar_color or "#eab308",
         "has_avatar": bool(user.avatar_image),
         "created_at": user.created_at.strftime("%d.%m.%Y"),
-        "is_admin": bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower()
+        "is_admin": (bool(os.environ.get("ADMIN_USERNAME", "").strip()) and user.username.lower() == os.environ.get("ADMIN_USERNAME", "").strip().lower()) or (bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower())
     }
 
 
 @app.route("/")
 def index():
     user = current_user()
-    return render_template("index.html", player_id=user.id if user and user.verified else None)
+    return render_template("index.html", player_id=user.id if user else None)
 
 
 @app.post("/api/register")
 def register():
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
-    email = str(data.get("email", "")).strip().lower()
     password = str(data.get("password", ""))
     if not 3 <= len(username) <= 24 or not all(c.isalnum() or c == "_" for c in username):
         return jsonify(ok=False, error="Kullanıcı adı 3-24 karakter olmalı; harf, rakam ve _ kullanılabilir."), 400
-    if len(email) > 254 or "@" not in email or "." not in email.rsplit("@", 1)[-1]:
-        return jsonify(ok=False, error="Geçerli bir e-posta adresi gir."), 400
     if len(password) < 8:
         return jsonify(ok=False, error="Şifre en az 8 karakter olmalı."), 400
-    if User.query.filter((User.username.ilike(username)) | (User.email == email)).first():
-        return jsonify(ok=False, error="Bu kullanıcı adı veya e-posta zaten kayıtlı."), 409
-    code = f"{secrets.randbelow(1000000):06d}"
+    if User.query.filter(User.username.ilike(username)).first():
+        return jsonify(ok=False, error="Bu kullanıcı adı zaten kayıtlı."), 409
+
+    # Eski veritabanı şemasındaki zorunlu e-posta sütunuyla uyumluluk için
+    # kullanıcıya görünmeyen, teslim edilemeyen dahili bir adres tutulur.
+    internal_email = username.lower() + "@no-email.invalid"
     user = User(
         id=secrets.token_hex(16),
         username=username,
-        email=email,
+        email=internal_email,
         password_hash=generate_password_hash(password),
-        verification_code=code,
-        verification_expires=datetime.utcnow() + timedelta(minutes=15)
+        verified=True
     )
     db.session.add(user)
-    db.session.commit()
     try:
-        send_email(email, "Online Satranç - E-posta doğrulama", f"Merhaba {username},\n\nDoğrulama kodun: {code}\nBu kod 15 dakika geçerlidir.")
-    except Exception:
-        db.session.delete(user)
         db.session.commit()
-        app.logger.exception("Verification email failed")
-        return jsonify(ok=False, error="Doğrulama e-postası gönderilemedi. Adresi kontrol et veya daha sonra tekrar dene."), 502
+    except Exception:
+        db.session.rollback()
+        return jsonify(ok=False, error="Hesap oluşturulamadı. Kullanıcı adını kontrol et."), 409
 
-    admin_email = os.environ.get("ADMIN_EMAIL", "").strip()
-    if admin_email:
-        try:
-            send_email(admin_email, "Yeni Online Satranç kaydı", f"Yeni hesap kaydı:\nKullanıcı adı: {username}\nE-posta: {email}\nKayıt tarihi: {user.created_at:%d.%m.%Y %H:%M} UTC\n\nŞifre güvenlik nedeniyle bildirilmez.")
-        except Exception:
-            app.logger.exception("Admin notification email failed")
-    return jsonify(ok=True, message="Doğrulama kodu e-posta adresine gönderildi.")
-
-
-@app.post("/api/verify")
-def verify_email():
-    data = request.get_json(silent=True) or {}
-    email = str(data.get("email", "")).strip().lower()
-    code = str(data.get("code", "")).strip()
-    user = User.query.filter_by(email=email).first()
-    if not user or user.verified or not user.verification_code or not user.verification_expires:
-        return jsonify(ok=False, error="Doğrulama isteği bulunamadı."), 400
-    if user.verification_expires < datetime.utcnow() or not secrets.compare_digest(user.verification_code, code):
-        return jsonify(ok=False, error="Kod hatalı veya süresi dolmuş."), 400
-    user.verified = True
-    user.verification_code = None
-    user.verification_expires = None
-    db.session.commit()
     session.clear()
     session["user_id"] = user.id
-    return jsonify(ok=True, user=user_public(user))
+    return jsonify(ok=True, message="Hesabın oluşturuldu.", user=user_public(user))
 
 
 @app.post("/api/login")
@@ -190,8 +162,6 @@ def login():
     user = User.query.filter(db.or_(User.username.ilike(identity), User.email == identity.lower())).first()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify(ok=False, error="Kullanıcı adı/e-posta veya şifre hatalı."), 401
-    if not user.verified:
-        return jsonify(ok=False, error="Önce e-posta adresini doğrula."), 403
     session.clear()
     session["user_id"] = user.id
     return jsonify(ok=True, user=user_public(user))
@@ -257,7 +227,7 @@ def avatar(user_id):
 def admin_users():
     user = current_user()
     admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
-    if not admin_email or user.email.lower() != admin_email:
+    if not ((os.environ.get("ADMIN_USERNAME", "").strip() and user.username.lower() == os.environ.get("ADMIN_USERNAME", "").strip().lower()) or (admin_email and user.email.lower() == admin_email)):
         return jsonify(ok=False, error="Bu sayfa yalnızca yöneticiye açık."), 403
     users = User.query.order_by(User.created_at.desc()).all()
     return jsonify(ok=True, users=[user_public(u) for u in users])
@@ -268,7 +238,7 @@ def admin_users():
 def admin_disable_user(user_id):
     admin = current_user()
     admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
-    if not admin_email or admin.email.lower() != admin_email:
+    if not ((os.environ.get("ADMIN_USERNAME", "").strip() and admin.username.lower() == os.environ.get("ADMIN_USERNAME", "").strip().lower()) or (admin_email and admin.email.lower() == admin_email)):
         return jsonify(ok=False, error="Yetkin yok."), 403
     target = db.session.get(User, user_id)
     if not target or target.id == admin.id:
@@ -312,7 +282,7 @@ def send_state(code, last_move=None):
 
 def socket_player_ok(player_id):
     user = current_user()
-    return bool(user and user.verified and str(player_id) == user.id)
+    return bool(user and str(player_id) == user.id)
 
 
 @socketio.on("create_room")
