@@ -68,6 +68,16 @@ class FriendRequest(db.Model):
     __table_args__ = (db.UniqueConstraint("sender_id", "receiver_id", name="uq_friend_pair"),)
 
 
+class CustomPiece(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), nullable=False)
+    symbol = db.Column(db.String(4), nullable=False, default="★")
+    movement = db.Column(db.String(240), nullable=False)
+    style = db.Column(db.String(20), nullable=False, default="joker")
+    created_by = db.Column(db.String(36), db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class GameRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     white_id = db.Column(db.String(36), db.ForeignKey("user.id"), nullable=False, index=True)
@@ -173,6 +183,15 @@ def login_required_api(fn):
     return wrapper
 
 
+def is_admin_user(user):
+    if not user:
+        return False
+    admin_username = os.environ.get("ADMIN_USERNAME", "").strip().lower()
+    admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+    return bool((admin_username and user.username.lower() == admin_username) or
+                (admin_email and user.email.lower() == admin_email))
+
+
 def user_public(user):
     return {
         "id": user.id,
@@ -182,7 +201,7 @@ def user_public(user):
         "avatar_color": user.avatar_color or "#eab308",
         "has_avatar": bool(user.avatar_image),
         "created_at": user.created_at.strftime("%d.%m.%Y"),
-        "is_admin": (bool(os.environ.get("ADMIN_USERNAME", "").strip()) and user.username.lower() == os.environ.get("ADMIN_USERNAME", "").strip().lower()) or (bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower())
+        "is_admin": is_admin_user(user)
     }
 
 
@@ -300,8 +319,7 @@ def avatar(user_id):
 @login_required_api
 def admin_users():
     user = current_user()
-    admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
-    if not ((os.environ.get("ADMIN_USERNAME", "").strip() and user.username.lower() == os.environ.get("ADMIN_USERNAME", "").strip().lower()) or (admin_email and user.email.lower() == admin_email)):
+    if not is_admin_user(user):
         return jsonify(ok=False, error="Bu sayfa yalnızca yöneticiye açık."), 403
     users = User.query.order_by(User.created_at.desc()).all()
     return jsonify(ok=True, users=[user_public(u) for u in users])
@@ -311,13 +329,56 @@ def admin_users():
 @login_required_api
 def admin_disable_user(user_id):
     admin = current_user()
-    admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
-    if not ((os.environ.get("ADMIN_USERNAME", "").strip() and admin.username.lower() == os.environ.get("ADMIN_USERNAME", "").strip().lower()) or (admin_email and admin.email.lower() == admin_email)):
+    if not is_admin_user(admin):
         return jsonify(ok=False, error="Yetkin yok."), 403
     target = db.session.get(User, user_id)
     if not target or target.id == admin.id:
         return jsonify(ok=False, error="Hesap bulunamadı veya bu işlem yapılamaz."), 400
     target.verified = False
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.get("/api/custom-pieces")
+def custom_pieces_api():
+    rows = CustomPiece.query.order_by(CustomPiece.created_at.desc()).all()
+    return jsonify(ok=True, pieces=[{
+        "id": item.id, "name": item.name, "symbol": item.symbol,
+        "movement": item.movement, "style": item.style
+    } for item in rows])
+
+
+@app.post("/api/admin/custom-pieces")
+@login_required_api
+def create_custom_piece_api():
+    admin = current_user()
+    if not is_admin_user(admin):
+        return jsonify(ok=False, error="Bu işlem yalnızca yöneticiye açık."), 403
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip()
+    symbol = str(data.get("symbol", "★")).strip()
+    movement = str(data.get("movement", "")).strip()
+    style = str(data.get("style", "joker")).strip().lower()
+    if not 2 <= len(name) <= 32 or not 1 <= len(symbol) <= 4 or not 5 <= len(movement) <= 240:
+        return jsonify(ok=False, error="Taş adı 2-32, sembol 1-4, hareket açıklaması 5-240 karakter olmalı."), 400
+    if style not in {"joker", "dragon", "wizard", "phoenix", "golem", "archer", "assassin", "royal"}:
+        return jsonify(ok=False, error="Geçersiz taş görünümü."), 400
+    item = CustomPiece(name=name, symbol=symbol, movement=movement, style=style, created_by=admin.id)
+    db.session.add(item)
+    db.session.commit()
+    return jsonify(ok=True, piece={"id": item.id, "name": item.name, "symbol": item.symbol, "movement": item.movement, "style": item.style})
+
+
+@app.delete("/api/admin/custom-pieces/<int:piece_id>")
+@login_required_api
+def delete_custom_piece_api(piece_id):
+    admin = current_user()
+    if not is_admin_user(admin):
+        return jsonify(ok=False, error="Bu işlem yalnızca yöneticiye açık."), 403
+    item = db.session.get(CustomPiece, piece_id)
+    if not item:
+        return jsonify(ok=False, error="Taş bulunamadı."), 404
+    db.session.delete(item)
     db.session.commit()
     return jsonify(ok=True)
 
