@@ -4,3 +4,4 @@ python-chess
 gunicorn
 simple-websocket
 Flask-SQLAlchemy
+psycopg2-binary
