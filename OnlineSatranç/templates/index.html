@@ -1,0 +1,438 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online Satranç</title>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 18px;
+    background: #111827;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 520px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    color: #facc15;
+}
+
+.panel {
+    background: #1f2937;
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 15px;
+}
+
+input, button {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 9px;
+    margin: 5px 0;
+    font-size: 16px;
+}
+
+input {
+    background: #374151;
+    color: white;
+}
+
+button {
+    background: #eab308;
+    color: #111827;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .5;
+}
+
+#status {
+    text-align: center;
+    font-size: 17px;
+    margin: 15px 0;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 100%;
+    aspect-ratio: 1;
+    border: 4px solid #374151;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.square {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(25px, 8vw, 47px);
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    position: relative;
+    line-height: 1;
+    user-select: none;
+}
+
+.light { background: #f0d9b5; }
+.dark { background: #b58863; }
+
+.selected {
+    background: #eab308 !important;
+}
+
+.target::after {
+    content: "";
+    width: 24%;
+    height: 24%;
+    border-radius: 50%;
+    background: #166534;
+    opacity: .75;
+    position: absolute;
+}
+
+.last {
+    box-shadow: inset 0 0 0 4px #facc15;
+}
+
+.white-piece {
+    color: #fff;
+    text-shadow: 1px 2px 2px #222;
+}
+
+.black-piece {
+    color: #171717;
+}
+
+#history {
+    max-height: 130px;
+    overflow-y: auto;
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+}
+
+.small {
+    color: #9ca3af;
+    text-align: center;
+    font-size: 13px;
+}
+
+#game { display: none; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>♟ ONLINE SATRANÇ</h1>
+
+<div class="panel" id="lobby">
+    <h3>Yeni oyun oluştur</h3>
+    <button onclick="createRoom()">Oda Oluştur</button>
+
+    <hr style="border-color:#374151">
+
+    <h3>Odaya katıl</h3>
+    <input id="roomInput" maxlength="6"
+           placeholder="6 karakterli oda kodu">
+    <button onclick="joinGame()">Oyuna Katıl</button>
+</div>
+
+<div id="game">
+
+    <div class="panel">
+        <div id="roomInfo">Oda: -</div>
+        <div id="myColor">Renk: -</div>
+        <button onclick="copyRoom()">Oda Kodunu Kopyala</button>
+    </div>
+
+    <div id="status">Bağlanıyor...</div>
+
+    <div id="board"></div>
+
+    <div class="panel">
+        <h3>Hamle Geçmişi</h3>
+        <div id="history">Henüz hamle yapılmadı.</div>
+    </div>
+
+    <div class="panel">
+        <button onclick="location.reload()">Lobiye Dön</button>
+    </div>
+
+</div>
+
+<div class="small" id="connection">Sunucuya bağlanılıyor...</div>
+
+</div>
+
+<script>
+const socket = io();
+
+let playerId = localStorage.getItem("chess_player_id");
+
+if (!playerId) {
+    playerId = (
+        window.crypto && crypto.randomUUID
+    ) ? crypto.randomUUID() :
+      Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+    localStorage.setItem("chess_player_id", playerId);
+}
+
+let roomCode = "";
+let myColor = "";
+let game = new Chess();
+let selected = null;
+let legalTargets = [];
+let lastMove = null;
+let gameFinished = false;
+
+const pieces = {
+    w: {
+        k:"♔", q:"♕", r:"♖",
+        b:"♗", n:"♘", p:"♙"
+    },
+    b: {
+        k:"♚", q:"♛", r:"♜",
+        b:"♝", n:"♞", p:"♟︎"
+    }
+};
+
+socket.on("connect", () => {
+    document.getElementById("connection").textContent =
+        "Sunucuya bağlandı.";
+
+    const oldRoom = localStorage.getItem("chess_room");
+
+    if (oldRoom) {
+        socket.emit("rejoin_game", {
+            code: oldRoom,
+            player_id: playerId
+        });
+    }
+});
+
+socket.on("disconnect", () => {
+    document.getElementById("connection").textContent =
+        "Bağlantı kesildi. Yeniden bağlanılıyor...";
+});
+
+function createRoom() {
+    socket.emit("create_room", {
+        player_id: playerId
+    });
+}
+
+function joinGame() {
+    const code = document.getElementById("roomInput")
+        .value.trim().toUpperCase();
+
+    if (code.length !== 6) {
+        alert("Oda kodu 6 karakter olmalı.");
+        return;
+    }
+
+    socket.emit("join_game", {
+        code: code,
+        player_id: playerId
+    });
+}
+
+socket.on("room_created", data => {
+    enterGame(data);
+});
+
+socket.on("room_joined", data => {
+    enterGame(data);
+});
+
+function enterGame(data) {
+    roomCode = data.code;
+    myColor = data.color;
+
+    localStorage.setItem("chess_room", roomCode);
+
+    document.getElementById("lobby").style.display = "none";
+    document.getElementById("game").style.display = "block";
+
+    document.getElementById("roomInfo").textContent =
+        "Oda: " + roomCode;
+
+    document.getElementById("myColor").textContent =
+        "Sen: " + (myColor === "white" ? "Beyaz ♔" : "Siyah ♚");
+
+    renderBoard();
+}
+
+socket.on("game_state", data => {
+    game = new Chess(data.fen);
+    selected = null;
+    legalTargets = [];
+    lastMove = data.last_move;
+    gameFinished = data.status.finished;
+
+    document.getElementById("status").textContent =
+        data.status.text;
+
+    const waiting = !data.players.black || !data.players.white;
+
+    if (waiting) {
+        document.getElementById("status").textContent =
+            "Rakip bekleniyor...";
+    }
+
+    document.getElementById("history").textContent =
+        data.moves.length ?
+        data.moves.map((m, i) =>
+            (Math.floor(i / 2) + 1) + ". " + m
+        ).join("   ") :
+        "Henüz hamle yapılmadı.";
+
+    renderBoard();
+});
+
+socket.on("error_message", message => {
+    alert(message);
+});
+
+socket.on("player_disconnected", data => {
+    document.getElementById("status").textContent =
+        data.message;
+});
+
+function renderBoard() {
+    const boardElement = document.getElementById("board");
+    boardElement.innerHTML = "";
+
+    const position = game.board();
+
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+
+            let r = row;
+            let c = col;
+
+            if (myColor === "black") {
+                r = 7 - row;
+                c = 7 - col;
+            }
+
+            const squareName =
+                "abcdefgh"[c] + (8 - r);
+
+            const piece = position[r][c];
+
+            const cell = document.createElement("button");
+            cell.className = "square " +
+                ((r + c) % 2 === 0 ? "light" : "dark");
+
+            if (selected === squareName) {
+                cell.classList.add("selected");
+            }
+
+            if (legalTargets.includes(squareName)) {
+                cell.classList.add("target");
+            }
+
+            if (
+                lastMove &&
+                (lastMove.slice(0, 2) === squareName ||
+                 lastMove.slice(2, 4) === squareName)
+            ) {
+                cell.classList.add("last");
+            }
+
+            if (piece) {
+                cell.textContent =
+                    pieces[piece.color][piece.type];
+
+                cell.classList.add(
+                    piece.color === "w" ?
+                    "white-piece" : "black-piece"
+                );
+            }
+
+            cell.onclick = () => clickSquare(squareName);
+
+            boardElement.appendChild(cell);
+        }
+    }
+}
+
+function clickSquare(square) {
+    if (!roomCode || !myColor || gameFinished) return;
+
+    const turn = game.turn() === "w" ? "white" : "black";
+
+    if (turn !== myColor) return;
+
+    const piece = game.get(square);
+
+    if (selected) {
+        if (legalTargets.includes(square)) {
+            const promotionPiece =
+                game.get(selected).type === "p" &&
+                (square[1] === "8" || square[1] === "1");
+
+            const uci = selected + square +
+                (promotionPiece ? "q" : "");
+
+            socket.emit("make_move", {
+                code: roomCode,
+                player_id: playerId,
+                uci: uci
+            });
+
+            selected = null;
+            legalTargets = [];
+            renderBoard();
+            return;
+        }
+    }
+
+    if (piece && (
+        (piece.color === "w" && myColor === "white") ||
+        (piece.color === "b" && myColor === "black")
+    )) {
+        selected = square;
+
+        legalTargets = game.moves({
+            square: square,
+            verbose: true
+        }).map(m => m.to);
+
+        renderBoard();
+    } else {
+        selected = null;
+        legalTargets = [];
+        renderBoard();
+    }
+}
+
+function copyRoom() {
+    navigator.clipboard.writeText(roomCode)
+        .then(() => alert("Oda kodu kopyalandı: " + roomCode))
+        .catch(() => alert("Oda kodun: " + roomCode));
+}
+
+</script>
+</body>
+</html>
