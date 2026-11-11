@@ -98,6 +98,7 @@ def user_public(user):
         "avatar_color": user.avatar_color or "#eab308",
         "has_avatar": bool(user.avatar_image),
         "created_at": user.created_at.strftime("%d.%m.%Y"),
+        "is_admin": bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower(),
         "is_admin": bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower()
     }
 
@@ -150,11 +151,6 @@ def register():
             send_email(admin_email, "Yeni Online Satranç kaydı", f"Yeni hesap kaydı:\nKullanıcı adı: {username}\nE-posta: {email}\nKayıt tarihi: {user.created_at:%d.%m.%Y %H:%M} UTC\n\nŞifre güvenlik nedeniyle bildirilmez.")
         except Exception:
             app.logger.exception("Admin notification email failed")
-    except Exception:
-        db.session.delete(user)
-        db.session.commit()
-        app.logger.exception("Registration email failed")
-        return jsonify(ok=False, error="E-posta gönderilemedi. Adresi kontrol et veya daha sonra tekrar dene."), 502
     return jsonify(ok=True, message="Doğrulama kodu e-posta adresine gönderildi.")
 
 
