@@ -6,7 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Online Satranç</title>
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js">
+checkSession();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js"></script>
 
 <style>
@@ -155,6 +157,22 @@ button:hover { background: #facc15; }
     .board { width: 95vw; }
     .side-panel { width: 95vw; }
 }
+
+.auth-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.auth-tabs button{flex:1}
+.auth-form{display:none}
+.auth-form.active{display:block}
+.auth-form input{text-align:left}
+#authScreen{max-width:460px}
+.small-note{font-size:12px;color:#cbd5e1;line-height:1.5}
+#profilePanel{max-width:650px}
+.profile-row{display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
+.avatar{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:bold;overflow:hidden;border:3px solid #facc15}
+.avatar img{width:100%;height:100%;object-fit:cover}
+#adminPanel{max-width:850px;overflow-x:auto}
+.user-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px;border-bottom:1px solid #374151;text-align:left}
+.hidden{display:none!important}
+
 </style>
 </head>
 
@@ -165,7 +183,69 @@ button:hover { background: #facc15; }
 <h1>♟ ONLINE SATRANÇ</h1>
 <p>Arkadaşınla internet üzerinden satranç oyna.</p>
 
-<div id="menuScreen" class="panel">
+
+<div id="authScreen" class="panel">
+  <h2>Hesabına giriş yap</h2>
+  <div class="auth-tabs">
+    <button type="button" onclick="showAuthTab('login')">Giriş yap</button>
+    <button type="button" onclick="showAuthTab('register')">Kayıt ol</button>
+  </div>
+  <div id="loginForm" class="auth-form active">
+    <input id="loginIdentity" autocomplete="username" placeholder="Kullanıcı adı veya e-posta">
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Şifre">
+    <button type="button" onclick="login()">Giriş yap</button>
+  </div>
+  <div id="registerForm" class="auth-form">
+    <input id="regUsername" maxlength="24" autocomplete="username" placeholder="Kullanıcı adı">
+    <input id="regEmail" type="email" autocomplete="email" placeholder="E-posta adresi">
+    <input id="regPassword" type="password" autocomplete="new-password" placeholder="Şifre (en az 8 karakter)">
+    <button type="button" onclick="register()">Kayıt ol</button>
+  </div>
+  <div id="verifyForm" class="auth-form">
+    <p>E-postana gelen 6 haneli doğrulama kodunu gir.</p>
+    <input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="Doğrulama kodu">
+    <button type="button" onclick="verifyEmail()">E-postayı doğrula</button>
+  </div>
+  <p id="authMessage" class="small-note"></p>
+  <p class="small-note">Kayıt için geçerli e-posta gerekir. Şifreler güvenli biçimde hash olarak saklanır; yönetici dâhil hiç kimse mevcut şifreyi göremez.</p>
+</div>
+
+<div id="accountBar" class="panel hidden">
+  <div class="profile-row">
+    <div id="miniAvatar" class="avatar">♟</div>
+    <div>
+      <strong id="welcomeName"></strong>
+      <div id="welcomeEmail" class="small-note"></div>
+    </div>
+  </div>
+  <button type="button" onclick="toggleProfile()">Profili düzenle</button>
+  <button type="button" id="adminOpenButton" class="hidden" onclick="loadAdmin()">Yönetici paneli</button>
+  <button type="button" onclick="logout()">Çıkış yap</button>
+</div>
+
+<div id="profilePanel" class="panel hidden">
+  <h2>Profilini özelleştir</h2>
+  <div class="profile-row">
+    <div id="profileAvatar" class="avatar">♟</div>
+    <input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+    <button type="button" onclick="uploadAvatar()">Görsel yükle</button>
+  </div>
+  <input id="displayName" maxlength="32" placeholder="Görünen ad">
+  <input id="bio" maxlength="160" placeholder="Kısa biyografi (160 karakter)">
+  <label for="avatarColor">Profil rengi</label>
+  <input id="avatarColor" type="color" value="#eab308">
+  <button type="button" onclick="saveProfile()">Profili kaydet</button>
+  <button type="button" onclick="toggleProfile()">Kapat</button>
+</div>
+
+<div id="adminPanel" class="panel hidden">
+  <h2>Yönetici paneli</h2>
+  <p class="small-note">Kullanıcı adı, e-posta ve kayıt tarihi görünür. Şifreler hiçbir zaman gösterilmez.</p>
+  <div id="adminUsers"></div>
+  <button type="button" onclick="document.getElementById('adminPanel').classList.add('hidden')">Kapat</button>
+</div>
+
+<div id="menuScreen" class="panel hidden">
 
     <h2>Oyun menüsü</h2>
 
@@ -228,6 +308,144 @@ button:hover { background: #facc15; }
 </div>
 
 <script>
+
+
+async function api(url, data, method="POST") {
+  const options = {method, headers:{}};
+  if (data instanceof FormData) options.body = data;
+  else if (data !== undefined) { options.headers["Content-Type"]="application/json"; options.body=JSON.stringify(data); }
+  const response = await fetch(url, options);
+  const result = await response.json().catch(()=>({ok:false,error:"Sunucu yanıtı okunamadı."}));
+  if (!response.ok || result.ok === false) throw new Error(result.error || "İşlem başarısız.");
+  return result;
+}
+function authMessage(message, error=false) {
+  const el=document.getElementById("authMessage"); el.textContent=message; el.style.color=error?"#fca5a5":"#86efac";
+}
+function showAuthTab(tab) {
+  document.getElementById("loginForm").classList.toggle("active",tab==="login");
+  document.getElementById("registerForm").classList.toggle("active",tab==="register");
+  document.getElementById("verifyForm").classList.remove("active");
+  authMessage("");
+}
+async function register() {
+  try {
+    const r=await api("/api/register",{
+      username:document.getElementById("regUsername").value,
+      email:document.getElementById("regEmail").value,
+      password:document.getElementById("regPassword").value
+    });
+    pendingEmail=document.getElementById("regEmail").value.trim().toLowerCase();
+    document.getElementById("loginForm").classList.remove("active");
+    document.getElementById("registerForm").classList.remove("active");
+    document.getElementById("verifyForm").classList.add("active");
+    authMessage(r.message);
+  } catch(e){authMessage(e.message,true);}
+}
+async function verifyEmail() {
+  try {
+    const r=await api("/api/verify",{email:pendingEmail,code:document.getElementById("verifyCode").value});
+    finishLogin(r.user);
+  } catch(e){authMessage(e.message,true);}
+}
+async function login() {
+  try {
+    const r=await api("/api/login",{
+      identity:document.getElementById("loginIdentity").value,
+      password:document.getElementById("loginPassword").value
+    });
+    finishLogin(r.user);
+  } catch(e){authMessage(e.message,true);}
+}
+function finishLogin(user) {
+  currentUser=user; playerId=user.id;
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("accountBar").classList.remove("hidden");
+  document.getElementById("menuScreen").classList.remove("hidden");
+  document.getElementById("welcomeName").textContent=user.display_name || user.username;
+  document.getElementById("welcomeEmail").textContent=user.email;
+  document.getElementById("adminOpenButton").classList.toggle("hidden", !window.ADMIN_USER);
+  setAvatar("miniAvatar",user); setAvatar("profileAvatar",user);
+  document.getElementById("displayName").value=user.display_name || user.username;
+  document.getElementById("bio").value=user.bio || "";
+  document.getElementById("avatarColor").value=user.avatar_color || "#eab308";
+  socket.disconnect(); socket.connect();
+}
+function setAvatar(id,user) {
+  const el=document.getElementById(id);
+  el.style.background=user.avatar_color || "#eab308";
+  if(user.has_avatar) el.innerHTML='<img alt="Profil görseli" src="/api/avatar/'+encodeURIComponent(user.id)+'?v='+Date.now()+'">';
+  else el.textContent=(user.display_name || user.username || "♟").slice(0,1).toUpperCase();
+}
+function toggleProfile(){document.getElementById("profilePanel").classList.toggle("hidden");}
+async function saveProfile(){
+  try {
+    const r=await api("/api/profile",{
+      display_name:document.getElementById("displayName").value,
+      bio:document.getElementById("bio").value,
+      avatar_color:document.getElementById("avatarColor").value
+    });
+    currentUser=r.user; finishProfileRefresh(r.user);
+    alert("Profil kaydedildi.");
+  } catch(e){alert(e.message);}
+}
+function finishProfileRefresh(user){
+  currentUser=user;
+  document.getElementById("welcomeName").textContent=user.display_name || user.username;
+  setAvatar("miniAvatar",user); setAvatar("profileAvatar",user);
+}
+async function uploadAvatar(){
+  const file=document.getElementById("avatarFile").files[0];
+  if(!file){alert("Önce bir görsel seç.");return;}
+  const data=new FormData(); data.append("avatar",file);
+  try {
+    await api("/api/profile/avatar",data);
+    currentUser.has_avatar=true; setAvatar("miniAvatar",currentUser); setAvatar("profileAvatar",currentUser);
+    alert("Profil görseli yüklendi.");
+  } catch(e){alert(e.message);}
+}
+async function loadAdmin(){
+  try{
+    const r=await api("/api/admin/users",undefined,"GET");
+    const host=document.getElementById("adminUsers"); host.innerHTML="";
+    r.users.forEach(u=>{
+      const row=document.createElement("div"); row.className="user-row";
+      const info=document.createElement("span");
+      info.textContent=u.username+" · "+u.email+" · "+u.created_at;
+      row.appendChild(info);
+      if(u.id!==currentUser.id){
+        const btn=document.createElement("button"); btn.textContent="Devre dışı bırak";
+        btn.onclick=async()=>{if(!confirm(u.username+" hesabı devre dışı bırakılsın mı?"))return;
+          try{await api("/api/admin/user/"+encodeURIComponent(u.id)+"/disable",{});loadAdmin();}
+          catch(e){alert(e.message);}
+        }; row.appendChild(btn);
+      }
+      host.appendChild(row);
+    });
+    document.getElementById("adminPanel").classList.remove("hidden");
+  }catch(e){alert(e.message);}
+}
+async function logout(){
+  try{await api("/api/logout",{});}catch(e){}
+  socket.disconnect(); currentUser=null;playerId=null;roomCode="";myColor=null;
+  localStorage.removeItem("chess_room");
+  document.getElementById("gameScreen").style.display="none";
+  document.getElementById("menuScreen").classList.add("hidden");
+  document.getElementById("accountBar").classList.add("hidden");
+  document.getElementById("profilePanel").classList.add("hidden");
+  document.getElementById("adminPanel").classList.add("hidden");
+  document.getElementById("authScreen").classList.remove("hidden");
+  showAuthTab("login");
+}
+async function checkSession(){
+  try{
+    const r=await api("/api/me",undefined,"GET");
+    finishLogin(r.user);
+  }catch(e){
+    document.getElementById("authScreen").classList.remove("hidden");
+    document.getElementById("menuScreen").classList.add("hidden");
+  }
+}
 
 // KÜTÜPHANE KONTROLÜ
 
