@@ -95,8 +95,8 @@ def login_required_api(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         user = current_user()
-        if not user:
-            return jsonify({"ok": False, "error": "Giriş yapmalısın."}), 401
+        if not user or not user.verified:
+            return jsonify({"ok": False, "error": "Giriş yapmalısın veya hesabın devre dışı."}), 401
         return fn(*args, **kwargs)
     return wrapper
 
@@ -105,7 +105,7 @@ def user_public(user):
     return {
         "id": user.id,
         "username": user.username,
-                "display_name": user.display_name or user.username,
+        "display_name": user.display_name or user.username,
         "bio": user.bio or "",
         "avatar_color": user.avatar_color or "#eab308",
         "has_avatar": bool(user.avatar_image),
@@ -162,6 +162,8 @@ def login():
     user = User.query.filter(User.username.ilike(identity)).first()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify(ok=False, error="Kullanıcı adı veya şifre hatalı."), 401
+    if not user.verified:
+        return jsonify(ok=False, error="Bu hesap devre dışı bırakılmış."), 403
     session.clear()
     session["user_id"] = user.id
     return jsonify(ok=True, user=user_public(user))
@@ -282,7 +284,7 @@ def send_state(code, last_move=None):
 
 def socket_player_ok(player_id):
     user = current_user()
-    return bool(user and str(player_id) == user.id)
+    return bool(user and user.verified and str(player_id) == user.id)
 
 
 @socketio.on("create_room")
