@@ -7,80 +7,59 @@
 <title>Online Satranç</title>
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.min.js"></script>
 
 <style>
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
+    padding: 15px;
     min-height: 100vh;
     background: #111827;
     color: white;
     font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.container {
-    width: 100%;
-    max-width: 900px;
     text-align: center;
 }
 
-h1 {
-    color: #facc15;
-    margin-bottom: 8px;
-}
+.container { max-width: 950px; margin: auto; }
+
+h1 { color: #facc15; }
 
 .panel {
     background: #1f2937;
     padding: 22px;
-    border-radius: 15px;
-    margin: 15px auto;
+    border-radius: 14px;
     max-width: 450px;
+    margin: 20px auto;
 }
 
 input {
     width: 100%;
     padding: 13px;
     margin: 8px 0;
-    border: 1px solid #4b5563;
     border-radius: 8px;
+    border: 1px solid #4b5563;
     background: #111827;
     color: white;
-    font-size: 16px;
+    font-size: 17px;
     text-align: center;
 }
 
 button {
-    border: none;
-    padding: 13px 18px;
+    padding: 12px 17px;
     margin: 5px;
+    border: none;
     border-radius: 8px;
     background: #eab308;
     color: #111827;
-    font-size: 15px;
     font-weight: bold;
     cursor: pointer;
 }
 
-button:hover {
-    background: #facc15;
-}
+button:hover { background: #facc15; }
 
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-#gameScreen {
-    display: none;
-}
+#gameScreen { display: none; }
 
 .game-layout {
     display: flex;
@@ -94,45 +73,40 @@ button:disabled {
 .board {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    width: min(80vw, 520px);
+    width: min(90vw, 520px);
     aspect-ratio: 1;
     border: 5px solid #374151;
-    border-radius: 5px;
-    overflow: hidden;
 }
 
 .square {
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     position: relative;
-    aspect-ratio: 1;
+    font-size: clamp(24px, 7vw, 54px);
     cursor: pointer;
-    font-family: "Segoe UI Symbol", "DejaVu Sans", serif;
-    font-size: clamp(23px, 7vw, 53px);
     user-select: none;
 }
 
-.light {
-    background: #f0d9b5;
+.light { background: #f0d9b5; }
+.dark { background: #b58863; }
+.selected { background: #eab308 !important; }
+
+.white-piece {
+    color: white;
+    text-shadow: 1px 2px 2px #333;
 }
 
-.dark {
-    background: #b58863;
-}
-
-.selected {
-    background: #eab308 !important;
-}
+.black-piece { color: #171717; }
 
 .possible::after {
     content: "";
     position: absolute;
-    width: 23%;
-    height: 23%;
-    background: #166534;
+    width: 22%;
+    height: 22%;
     border-radius: 50%;
-    opacity: 0.65;
+    background: #166534;
+    opacity: .7;
 }
 
 .capture::after {
@@ -141,16 +115,6 @@ button:disabled {
     inset: 4px;
     border: 5px solid #166534;
     border-radius: 50%;
-    opacity: 0.65;
-}
-
-.white-piece {
-    color: #fff;
-    text-shadow: 1px 2px 2px #333;
-}
-
-.black-piece {
-    color: #171717;
 }
 
 .side-panel {
@@ -162,26 +126,22 @@ button:disabled {
 }
 
 .status {
-    background: #111827;
+    background: #1f2937;
+    padding: 14px;
     border-radius: 8px;
-    padding: 13px;
-    margin: 12px 0;
-    text-align: center;
-    min-height: 45px;
+    margin: 12px auto;
 }
 
 .room-code {
     color: #facc15;
-    font-size: 23px;
+    font-size: 25px;
     font-weight: bold;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
 }
 
 #moveList {
     max-height: 180px;
     overflow-y: auto;
-    overflow-wrap: anywhere;
-    font-size: 14px;
     line-height: 1.8;
 }
 
@@ -192,26 +152,8 @@ button:disabled {
 }
 
 @media(max-width: 600px) {
-    body {
-        padding: 8px;
-        align-items: flex-start;
-    }
-
-    .panel {
-        padding: 15px;
-    }
-
-    .game-layout {
-        gap: 10px;
-    }
-
-    .board {
-        width: min(94vw, 520px);
-    }
-
-    .side-panel {
-        width: min(94vw, 520px);
-    }
+    .board { width: 95vw; }
+    .side-panel { width: 95vw; }
 }
 </style>
 </head>
@@ -220,75 +162,62 @@ button:disabled {
 
 <div class="container">
 
-    <h1>♟ ONLINE SATRANÇ</h1>
-    <p>Arkadaşınla internet üzerinden satranç oyna.</p>
+<h1>♟ ONLINE SATRANÇ</h1>
+<p>Arkadaşınla internet üzerinden satranç oyna.</p>
 
-    <div id="menuScreen" class="panel">
+<div id="menuScreen" class="panel">
 
-        <h2>Oyun menüsü</h2>
+    <h2>Oyun menüsü</h2>
 
-        <button onclick="createRoom()">Oda oluştur</button>
+    <button onclick="createRoom()">Oda oluştur</button>
 
-        <hr style="border-color:#374151;margin:20px 0;">
+    <hr>
 
-        <h3>Odaya katıl</h3>
+    <h3>Odaya katıl</h3>
 
-        <input
-            id="roomInput"
-            type="text"
-            maxlength="6"
-            placeholder="6 haneli oda kodu"
-        >
+    <input id="roomInput" maxlength="6" placeholder="6 haneli oda kodu">
 
-        <button onclick="joinGame()">Odaya katıl</button>
+    <button onclick="joinGame()">Odaya katıl</button>
 
-        <div id="connection">Sunucuya bağlanılıyor...</div>
+    <div id="connection">Bağlanılıyor...</div>
 
-    </div>
+</div>
 
+<div id="gameScreen">
 
-    <div id="gameScreen">
+    <div class="status" id="gameStatus">Oyun yükleniyor...</div>
 
-        <div class="status" id="gameStatus">
-            Oyun yükleniyor...
+    <div class="game-layout">
+
+        <div>
+            <div class="board" id="board"></div>
         </div>
 
-        <div class="game-layout">
+        <div class="side-panel">
 
-            <div>
-                <div class="board" id="board"></div>
-            </div>
+            <h3>Oyun bilgileri</h3>
 
-            <div class="side-panel">
+            <p>Oda kodu:</p>
+            <div class="room-code" id="roomCode">------</div>
 
-                <h3>Oyun bilgileri</h3>
+            <button onclick="copyRoomCode()">Kodu kopyala</button>
 
-                <p>Oda kodu:</p>
-                <div class="room-code" id="roomCode">------</div>
+            <hr>
 
-                <button onclick="copyRoomCode()">Kodu kopyala</button>
+            <p>Senin rengin:</p>
+            <h3 id="myColor">-</h3>
 
-                <hr style="border-color:#374151;">
+            <p>Beyaz: <span id="whitePlayer">Bekleniyor</span></p>
+            <p>Siyah: <span id="blackPlayer">Bekleniyor</span></p>
 
-                <p>Senin rengin:</p>
-                <h3 id="myColor">-</h3>
+            <hr>
 
-                <p>Beyaz oyuncu:</p>
-                <span id="whitePlayer">Bekleniyor</span>
+            <h3>Hamleler</h3>
+            <div id="moveList">Henüz hamle yok.</div>
 
-                <p>Siyah oyuncu:</p>
-                <span id="blackPlayer">Bekleniyor</span>
+            <hr>
 
-                <hr style="border-color:#374151;">
-
-                <h3>Hamleler</h3>
-                <div id="moveList">Henüz hamle yok.</div>
-
-                <hr style="border-color:#374151;">
-
-                <button onclick="backToMenu()">Menüye dön</button>
-
-            </div>
+            <button onclick="backToMenu()">Menüye dön</button>
 
         </div>
 
@@ -296,13 +225,26 @@ button:disabled {
 
 </div>
 
+</div>
 
 <script>
-"use strict";
 
-// -----------------------------
+// KÜTÜPHANE KONTROLÜ
+
+if (typeof Chess === "undefined") {
+    document.getElementById("connection").textContent =
+        "Satranç kütüphanesi yüklenemedi. Sayfayı yenile.";
+    throw new Error("Chess.js yüklenemedi.");
+}
+
+if (typeof io === "undefined") {
+    document.getElementById("connection").textContent =
+        "Socket.IO kütüphanesi yüklenemedi.";
+    throw new Error("Socket.IO yüklenemedi.");
+}
+
+
 // BAĞLANTI
-// -----------------------------
 
 const socket = io({
     reconnection: true,
@@ -313,12 +255,7 @@ const socket = io({
 let playerId = localStorage.getItem("chess_player_id");
 
 if (!playerId) {
-    playerId = (
-        "player_" +
-        Math.random().toString(36).substring(2) +
-        Date.now().toString(36)
-    );
-
+    playerId = "player_" + Math.random().toString(36).slice(2) + Date.now();
     localStorage.setItem("chess_player_id", playerId);
 }
 
@@ -330,30 +267,17 @@ let possibleMoves = [];
 let currentStatus = null;
 
 
-// -----------------------------
 // TAŞLAR
-// -----------------------------
 
 const pieces = {
-    wK: "♔",
-    wQ: "♕",
-    wR: "♖",
-    wB: "♗",
-    wN: "♘",
-    wP: "♙",
-
-    bK: "♚",
-    bQ: "♛",
-    bR: "♜",
-    bB: "♝",
-    bN: "♞",
-    bP: "♟"
+    wK: "♔", wQ: "♕", wR: "♖",
+    wB: "♗", wN: "♘", wP: "♙",
+    bK: "♚", bQ: "♛", bR: "♜",
+    bB: "♝", bN: "♞", bP: "♟"
 };
 
 
-// -----------------------------
-// BAĞLANTI DURUMU
-// -----------------------------
+// BAĞLANTI OLAYLARI
 
 socket.on("connect", () => {
     document.getElementById("connection").textContent =
@@ -373,21 +297,17 @@ socket.on("disconnect", () => {
 });
 
 socket.on("connect_error", error => {
-    console.error("Socket bağlantı hatası:", error.message);
-
+    console.error(error);
     document.getElementById("connection").textContent =
         "Sunucu bağlantı hatası.";
 });
 
 
-// -----------------------------
-// ODA OLUŞTURMA
-// -----------------------------
+// ODA OLUŞTUR
 
 function createRoom() {
-
     if (!socket.connected) {
-        alert("Sunucuya henüz bağlanılmadı.");
+        alert("Sunucuya bağlanılmadı.");
         return;
     }
 
@@ -397,25 +317,19 @@ function createRoom() {
 }
 
 
-// -----------------------------
-// ODAYA KATILMA
-// -----------------------------
+// ODAYA KATIL
 
 function joinGame() {
-
     if (!socket.connected) {
-        alert("Sunucuya henüz bağlanılmadı.");
+        alert("Sunucuya bağlanılmadı.");
         return;
     }
 
-    const code = document
-        .getElementById("roomInput")
-        .value
-        .trim()
-        .toUpperCase();
+    const code = document.getElementById("roomInput")
+        .value.trim().toUpperCase();
 
     if (code.length !== 6) {
-        alert("6 haneli oda kodunu gir.");
+        alert("6 haneli oda kodu gir.");
         return;
     }
 
@@ -426,24 +340,16 @@ function joinGame() {
 }
 
 
-// -----------------------------
 // ODA CEVAPLARI
-// -----------------------------
 
-socket.on("room_created", data => {
-    enterGame(data);
-});
-
-socket.on("room_joined", data => {
-    enterGame(data);
-});
+socket.on("room_created", data => enterGame(data));
+socket.on("room_joined", data => enterGame(data));
 
 socket.on("error_message", message => {
     alert(message);
 });
 
 function enterGame(data) {
-
     roomCode = data.code;
     myColor = data.color;
 
@@ -457,19 +363,13 @@ function enterGame(data) {
     document.getElementById("myColor").textContent =
         myColor === "white" ? "Beyaz" : "Siyah";
 
-    selectedSquare = null;
-    possibleMoves = [];
-
     renderBoard();
 }
 
 
-// -----------------------------
 // OYUN DURUMU
-// -----------------------------
 
 socket.on("game_state", data => {
-
     try {
         chess.load(data.fen);
     } catch (error) {
@@ -478,7 +378,6 @@ socket.on("game_state", data => {
     }
 
     currentStatus = data.status;
-
     selectedSquare = null;
     possibleMoves = [];
 
@@ -492,7 +391,6 @@ socket.on("game_state", data => {
         data.players.black ? "Bağlandı" : "Bekleniyor";
 
     updateMoveList(data.moves);
-
     renderBoard();
 });
 
@@ -501,12 +399,9 @@ socket.on("player_disconnected", data => {
 });
 
 
-// -----------------------------
 // HAMLE LİSTESİ
-// -----------------------------
 
 function updateMoveList(moves) {
-
     const element = document.getElementById("moveList");
 
     if (!moves || moves.length === 0) {
@@ -518,32 +413,24 @@ function updateMoveList(moves) {
 
     for (let i = 0; i < moves.length; i += 2) {
         output +=
-            Math.floor(i / 2 + 1) +
-            ". " +
-            moves[i] +
-            " " +
-            (moves[i + 1] || "") +
-            "<br>";
+            (Math.floor(i / 2) + 1) + ". " +
+            moves[i] + " " +
+            (moves[i + 1] || "") + "<br>";
     }
 
     element.innerHTML = output;
 }
 
 
-// -----------------------------
-// TAHTA OLUŞTURMA
-// -----------------------------
+// TAHTAYI ÇİZ
 
 function renderBoard() {
-
-    const board = document.getElementById("board");
-
-    board.innerHTML = "";
+    const boardElement = document.getElementById("board");
+    boardElement.innerHTML = "";
 
     const position = chess.board();
 
     for (let row = 0; row < 8; row++) {
-
         for (let col = 0; col < 8; col++) {
 
             let r = row;
@@ -554,9 +441,7 @@ function renderBoard() {
                 c = 7 - col;
             }
 
-            const squareName =
-                "abcdefgh"[c] + (8 - r);
-
+            const squareName = "abcdefgh"[c] + (8 - r);
             const piece = position[r][c];
 
             const square = document.createElement("div");
@@ -574,24 +459,16 @@ function renderBoard() {
             );
 
             if (isPossible) {
-                if (piece) {
-                    square.classList.add("capture");
-                } else {
-                    square.classList.add("possible");
-                }
+                square.classList.add(piece ? "capture" : "possible");
             }
 
             if (piece) {
-
                 const color = piece.color === "w" ? "w" : "b";
-                const symbol = pieces[color + piece.type.toUpperCase()];
-
-                square.textContent = symbol;
+                square.textContent =
+                    pieces[color + piece.type.toUpperCase()];
 
                 square.classList.add(
-                    piece.color === "w"
-                        ? "white-piece"
-                        : "black-piece"
+                    piece.color === "w" ? "white-piece" : "black-piece"
                 );
             }
 
@@ -599,20 +476,16 @@ function renderBoard() {
                 clickSquare(squareName);
             });
 
-            board.appendChild(square);
+            boardElement.appendChild(square);
         }
     }
 }
 
 
-// -----------------------------
-// KARE SEÇME
-// -----------------------------
+// KARE SEÇİMİ
 
 function clickSquare(square) {
-
     if (!roomCode || !myColor) return;
-
     if (currentStatus && currentStatus.finished) return;
 
     const myTurn =
@@ -628,7 +501,6 @@ function clickSquare(square) {
     const piece = chess.get(square);
 
     if (selectedSquare) {
-
         const selectedMove = possibleMoves.find(
             move => move.to === square
         );
@@ -639,11 +511,7 @@ function clickSquare(square) {
         }
     }
 
-    if (
-        piece &&
-        piece.color === (myColor === "white" ? "w" : "b")
-    ) {
-
+    if (piece && piece.color === (myColor === "white" ? "w" : "b")) {
         selectedSquare = square;
 
         possibleMoves = chess.moves({
@@ -657,25 +525,21 @@ function clickSquare(square) {
 
     selectedSquare = null;
     possibleMoves = [];
-
     renderBoard();
 }
 
 
-// -----------------------------
-// HAMLE GÖNDERME
-// -----------------------------
+// HAMLE GÖNDER
 
 function sendMove(move) {
-
-    let promotion = move.promotion;
+    let promotion = "";
 
     if (
         move.piece === "p" &&
         (move.to.endsWith("8") || move.to.endsWith("1"))
     ) {
         promotion = prompt(
-            "Terfi taşı seç:\nq = Vezir\nr = Kale\nb = Fil\nn = At",
+            "Terfi taşı:\nq = Vezir\nr = Kale\nb = Fil\nn = At",
             "q"
         );
 
@@ -689,10 +553,7 @@ function sendMove(move) {
         }
     }
 
-    const uci =
-        move.from +
-        move.to +
-        (promotion || "");
+    const uci = move.from + move.to + promotion;
 
     socket.emit("make_move", {
         code: roomCode,
@@ -702,38 +563,29 @@ function sendMove(move) {
 
     selectedSquare = null;
     possibleMoves = [];
-
     renderBoard();
 }
 
 
-// -----------------------------
-// ODA KODU KOPYALAMA
-// -----------------------------
+// KODU KOPYALA
 
 function copyRoomCode() {
-
     if (!roomCode) return;
 
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(roomCode)
             .then(() => alert("Oda kodu kopyalandı."))
-            .catch(() => alert("Kod: " + roomCode));
+            .catch(() => alert("Oda kodun: " + roomCode));
     } else {
         alert("Oda kodun: " + roomCode);
     }
 }
 
 
-// -----------------------------
-// MENÜYE DÖNME
-// -----------------------------
+// MENÜYE DÖN
 
 function backToMenu() {
-
-    if (!confirm("Menüye dönmek istiyor musun?")) {
-        return;
-    }
+    if (!confirm("Menüye dönmek istiyor musun?")) return;
 
     localStorage.removeItem("chess_room");
 
@@ -741,12 +593,11 @@ function backToMenu() {
     myColor = null;
     selectedSquare = null;
     possibleMoves = [];
-
+    currentStatus = null;
     chess = new Chess();
 
     document.getElementById("gameScreen").style.display = "none";
     document.getElementById("menuScreen").style.display = "block";
-
     document.getElementById("roomInput").value = "";
 }
 
