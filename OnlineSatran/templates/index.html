@@ -364,7 +364,7 @@ function finishLogin(user) {
   document.getElementById("menuScreen").classList.remove("hidden");
   document.getElementById("welcomeName").textContent=user.display_name || user.username;
   document.getElementById("welcomeEmail").textContent=user.email;
-  document.getElementById("adminOpenButton").classList.toggle("hidden", !window.ADMIN_USER);
+  document.getElementById("adminOpenButton").classList.toggle("hidden", !user.is_admin);
   setAvatar("miniAvatar",user); setAvatar("profileAvatar",user);
   document.getElementById("displayName").value=user.display_name || user.username;
   document.getElementById("bio").value=user.bio || "";
