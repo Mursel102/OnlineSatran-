@@ -50,6 +50,78 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+class PlayerStats(db.Model):
+    user_id = db.Column(db.String(36), db.ForeignKey("user.id"), primary_key=True)
+    rating = db.Column(db.Integer, nullable=False, default=1000)
+    wins = db.Column(db.Integer, nullable=False, default=0)
+    losses = db.Column(db.Integer, nullable=False, default=0)
+    draws = db.Column(db.Integer, nullable=False, default=0)
+    games = db.Column(db.Integer, nullable=False, default=0)
+
+
+class FriendRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.String(36), db.ForeignKey("user.id"), nullable=False, index=True)
+    receiver_id = db.Column(db.String(36), db.ForeignKey("user.id"), nullable=False, index=True)
+    status = db.Column(db.String(12), nullable=False, default="pending")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    __table_args__ = (db.UniqueConstraint("sender_id", "receiver_id", name="uq_friend_pair"),)
+
+
+class GameRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    white_id = db.Column(db.String(36), db.ForeignKey("user.id"), nullable=False, index=True)
+    black_id = db.Column(db.String(36), db.ForeignKey("user.id"), nullable=False, index=True)
+    result = db.Column(db.String(12), nullable=False)
+    moves_json = db.Column(db.Text, nullable=False, default="[]")
+    white_rating_change = db.Column(db.Integer, nullable=False, default=0)
+    black_rating_change = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+def ensure_player_stats(user_id):
+    stats = db.session.get(PlayerStats, user_id)
+    if not stats:
+        stats = PlayerStats(user_id=user_id)
+        db.session.add(stats)
+        db.session.flush()
+    return stats
+
+
+def finish_record(game, result):
+    if game.get("recorded") or not game["players"].get("white") or not game["players"].get("black"):
+        return
+    white_id, black_id = game["players"]["white"], game["players"]["black"]
+    if white_id == black_id:
+        return
+    white = ensure_player_stats(white_id)
+    black = ensure_player_stats(black_id)
+    expected_white = 1 / (1 + 10 ** ((black.rating - white.rating) / 400))
+    score_white = 1.0 if result == "white" else 0.0 if result == "black" else 0.5
+    change_white = round(32 * (score_white - expected_white))
+    change_black = -change_white
+    white.rating = max(100, white.rating + change_white)
+    black.rating = max(100, black.rating + change_black)
+    white.games += 1
+    black.games += 1
+    if result == "draw":
+        white.draws += 1
+        black.draws += 1
+    elif result == "white":
+        white.wins += 1
+        black.losses += 1
+    else:
+        black.wins += 1
+        white.losses += 1
+    db.session.add(GameRecord(
+        white_id=white_id, black_id=black_id, result=result,
+        moves_json=json.dumps(game["moves"], ensure_ascii=False),
+        white_rating_change=change_white, black_rating_change=change_black
+    ))
+    db.session.commit()
+    game["recorded"] = True
+
+
 with app.app_context():
     db.create_all()
 
@@ -250,6 +322,98 @@ def admin_disable_user(user_id):
     return jsonify(ok=True)
 
 
+@app.get("/api/stats")
+@login_required_api
+def player_stats_api():
+    user = current_user()
+    stats = ensure_player_stats(user.id)
+    db.session.commit()
+    return jsonify(ok=True, stats={
+        "rating": stats.rating, "wins": stats.wins, "losses": stats.losses,
+        "draws": stats.draws, "games": stats.games,
+        "win_rate": round((stats.wins / stats.games) * 100, 1) if stats.games else 0
+    })
+
+
+@app.get("/api/leaderboard")
+def leaderboard_api():
+    rows = db.session.query(PlayerStats, User).join(User, User.id == PlayerStats.user_id).order_by(PlayerStats.rating.desc(), PlayerStats.wins.desc()).limit(50).all()
+    return jsonify(ok=True, players=[{
+        "username": user.display_name or user.username, "rating": stats.rating,
+        "wins": stats.wins, "games": stats.games
+    } for stats, user in rows])
+
+
+@app.get("/api/friends")
+@login_required_api
+def friends_api():
+    user = current_user()
+    requests_in = FriendRequest.query.filter_by(receiver_id=user.id, status="pending").all()
+    accepted = FriendRequest.query.filter(
+        db.or_(
+            db.and_(FriendRequest.sender_id == user.id, FriendRequest.status == "accepted"),
+            db.and_(FriendRequest.receiver_id == user.id, FriendRequest.status == "accepted")
+        )
+    ).all()
+    def public_friend_request(item, other_id):
+        other = db.session.get(User, other_id)
+        return {"id": item.id, "user_id": other.id, "username": other.display_name or other.username}
+    return jsonify(ok=True,
+        incoming=[public_friend_request(x, x.sender_id) for x in requests_in],
+        friends=[public_friend_request(x, x.receiver_id if x.sender_id == user.id else x.sender_id) for x in accepted])
+
+
+@app.post("/api/friends/request")
+@login_required_api
+def friend_request_api():
+    user = current_user()
+    name = str((request.get_json(silent=True) or {}).get("username", "")).strip()
+    other = User.query.filter(User.username.ilike(name)).first()
+    if not other or other.id == user.id:
+        return jsonify(ok=False, error="Kullanıcı bulunamadı."), 404
+    existing = FriendRequest.query.filter(
+        db.or_(
+            db.and_(FriendRequest.sender_id == user.id, FriendRequest.receiver_id == other.id),
+            db.and_(FriendRequest.sender_id == other.id, FriendRequest.receiver_id == user.id)
+        )
+    ).first()
+    if existing:
+        return jsonify(ok=False, error="Bu kullanıcıya zaten istek gönderilmiş veya arkadaşsınız."), 409
+    db.session.add(FriendRequest(sender_id=user.id, receiver_id=other.id))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/api/friends/<int:request_id>/accept")
+@login_required_api
+def accept_friend_api(request_id):
+    item = db.session.get(FriendRequest, request_id)
+    if not item or item.receiver_id != current_user().id or item.status != "pending":
+        return jsonify(ok=False, error="İstek bulunamadı."), 404
+    item.status = "accepted"
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.get("/api/history")
+@login_required_api
+def history_api():
+    user = current_user()
+    rows = GameRecord.query.filter(db.or_(GameRecord.white_id == user.id, GameRecord.black_id == user.id)).order_by(GameRecord.created_at.desc()).limit(50).all()
+    output = []
+    for row in rows:
+        white = db.session.get(User, row.white_id)
+        black = db.session.get(User, row.black_id)
+        output.append({
+            "white": white.display_name or white.username,
+            "black": black.display_name or black.username,
+            "result": row.result, "moves": json.loads(row.moves_json),
+            "date": row.created_at.strftime("%d.%m.%Y %H:%M"),
+            "my_color": "white" if row.white_id == user.id else "black"
+        })
+    return jsonify(ok=True, games=output)
+
+
 def new_code():
     while True:
         code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -274,9 +438,13 @@ def game_status(board):
 def send_state(code, last_move=None):
     game = rooms[code]
     board = game["board"]
+    status = game_status(board)
+    if status["finished"] and not game.get("recorded"):
+        result = "draw" if board.is_stalemate() or board.is_insufficient_material() or board.is_fivefold_repetition() or board.is_seventyfive_moves() else ("black" if board.turn else "white")
+        finish_record(game, result)
     socketio.emit("game_state", {
         "fen": board.fen(), "turn": "white" if board.turn else "black",
-        "moves": game["moves"], "status": game_status(board),
+        "moves": game["moves"], "status": status,
         "players": {"white": bool(game["players"]["white"]), "black": bool(game["players"]["black"])},
         "last_move": last_move
     }, to=code)
@@ -298,7 +466,7 @@ def create_room(data):
         "board": chess.Board(),
         "players": {"white": player_id, "black": None},
         "sids": {"white": request.sid, "black": None},
-        "moves": []
+        "moves": [], "recorded": False, "chat": []
     }
     sid_to_game[request.sid] = code
     join_room(code)
@@ -374,6 +542,29 @@ def make_move(data):
     board.push(move)
     game["moves"].append(san)
     send_state(code, san)
+
+
+@socketio.on("chat_message")
+def chat_message(data):
+    data = data or {}
+    code = str(data.get("code", "")).upper()
+    message = str(data.get("message", "")).strip()
+    user = current_user()
+    if not user or not user.verified or code not in rooms:
+        emit("error_message", "Sohbet için giriş yapmalı ve oyunda olmalısın.")
+        return
+    game = rooms[code]
+    if user.id not in game["players"].values() or game["sids"].get("white") != request.sid and game["sids"].get("black") != request.sid:
+        emit("error_message", "Bu odanın sohbetine erişimin yok.")
+        return
+    if not message or len(message) > 300:
+        emit("error_message", "Mesaj 1-300 karakter olmalı.")
+        return
+    socketio.emit("chat_message", {
+        "username": user.display_name or user.username,
+        "message": message,
+        "time": datetime.utcnow().strftime("%H:%M")
+    }, to=code)
 
 
 @socketio.on("disconnect")
