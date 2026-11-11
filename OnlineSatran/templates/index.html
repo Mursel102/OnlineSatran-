@@ -515,6 +515,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
   <button type="button" data-page="play" onclick="showPage('play')">Satranç Oyna</button>
   <button type="button" data-page="pieces" onclick="showPage('pieces')">Taş Koleksiyonu</button>
   <button type="button" data-page="leaderboard" onclick="showPage('leaderboard')">Sıralama</button>
+  <button type="button" data-page="dashboard" onclick="loadDashboard()">Oyuncu Merkezi</button>
   <button type="button" data-page="community" onclick="showPage('community')">Arkadaşlar</button>
   <button type="button" data-page="history" onclick="showPage('history')">Maçlarım</button>
   <button type="button" data-page="profile" onclick="showPage('profile')">Profil</button>
@@ -661,6 +662,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
 
 
 
+let currentUser = null;
 let boardFlipped = false;
 let customPieceCache = [];
 let sandboxCells = Array(64).fill(null);
@@ -670,7 +672,7 @@ function showPage(page){
   if(page==="admin" && !(currentUser&&currentUser.is_admin)) return;
   currentPage=page;
   document.querySelectorAll(".site-view").forEach(el=>el.classList.remove("active"));
-  const ids={home:"homePage",play:roomCode?"gameScreen":"menuScreen",pieces:"piecesPage",leaderboard:"leaderboardPage",community:"communityPage",history:"historyPage",profile:"profilePanel",admin:"adminPanel"};
+  const ids={home:"homePage",play:roomCode?"gameScreen":"menuScreen",pieces:"piecesPage",leaderboard:"leaderboardPage",dashboard:"dashboardPanel",community:"communityPage",history:"historyPage",profile:"profilePanel",admin:"adminPanel"};
   const target=document.getElementById(ids[page]||"homePage");
   if(target){target.classList.remove("hidden");target.classList.add("active");}
   document.querySelectorAll("#siteNav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
@@ -718,7 +720,7 @@ async function login() {
 }
 
 async function loadDashboard(){
- document.getElementById("dashboardPanel").classList.remove("hidden");
+ showPage("dashboard");
  try{
   const a=await api("/api/stats",undefined,"GET");
   const b=await api("/api/leaderboard",undefined,"GET");
