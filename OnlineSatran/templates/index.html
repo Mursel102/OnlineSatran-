@@ -673,11 +673,15 @@ let boardFlipped = false;
 let customPieceCache = [];
 let sandboxCells = Array(64).fill(null);
 let currentPage = "home";
+const pagePaths={home:"/",play:"/play",pieces:"/pieces",special:"/special",leaderboard:"/leaderboard",dashboard:"/dashboard",community:"/friends",history:"/matches",profile:"/profile",admin:"/admin"};
+function pageFromPath(){const path=window.location.pathname;return Object.keys(pagePaths).find(k=>pagePaths[k]===path)||"home";}
+window.addEventListener("popstate",()=>{if(currentUser)showPage(pageFromPath(),false);});
 const sandboxEditor=document.getElementById("sandboxEditor");
 if(sandboxEditor) document.getElementById("sandboxHolder").appendChild(sandboxEditor);
-function showPage(page){
+function showPage(page,updateUrl=true){
   if(!currentUser && page!=="home") return;
-  if(page==="admin" && !(currentUser&&currentUser.is_admin)) return;
+  if(page==="admin" && !(currentUser&&currentUser.is_admin)) page="home";
+  if(updateUrl && pagePaths[page] && window.location.pathname!==pagePaths[page]) history.pushState({page}, "", pagePaths[page]);
   currentPage=page;
   document.querySelectorAll(".site-view").forEach(el=>el.classList.remove("active"));
   const ids={home:"homePage",play:roomCode?"gameScreen":"menuScreen",pieces:"piecesPage",special:"specialGamePage",leaderboard:"leaderboardPage",dashboard:"dashboardPanel",community:"communityPage",history:"historyPage",profile:"profilePanel",admin:"adminPanel"};
@@ -771,7 +775,7 @@ function finishLogin(user) {
   document.getElementById("siteNav").classList.add("visible");
   document.getElementById("adminNavButton").classList.toggle("hidden", !user.is_admin);
   document.getElementById("adminPieceEditor").classList.toggle("hidden", !user.is_admin);
-  showPage("home");
+  showPage(pageFromPath(),false);
   document.getElementById("welcomeName").textContent=user.display_name || user.username;
   document.getElementById("adminOpenButton").classList.toggle("hidden", !user.is_admin);
   setAvatar("miniAvatar",user); setAvatar("profileAvatar",user);
