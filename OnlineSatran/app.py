@@ -211,6 +211,15 @@ def index():
     return render_template("index.html", player_id=user.id if user else None)
 
 
+@app.get("/<path:page>")
+def named_page(page):
+    allowed_pages = {"play", "pieces", "special", "leaderboard", "dashboard", "friends", "matches", "profile", "admin"}
+    if page not in allowed_pages:
+        return "Sayfa bulunamadı.", 404
+    user = current_user()
+    return render_template("index.html", player_id=user.id if user else None)
+
+
 @app.post("/api/register")
 def register():
     data = request.get_json(silent=True) or {}
