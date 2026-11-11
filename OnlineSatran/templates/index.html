@@ -6,7 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Online Satranç</title>
 
-<script src="/socket.io/socket.io.js"></script>
+<!-- Güncel Socket.IO istemcisi -->
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 
 <style>
@@ -184,7 +185,14 @@ button:disabled {
 </div>
 
 <script>
-const socket = io();
+
+// Socket.IO bağlantısı
+const socket = io({
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000
+});
 
 let playerId = localStorage.getItem("chess_player_id");
 
@@ -216,6 +224,7 @@ const pieces = {
     }
 };
 
+// Bağlantı başarılı
 socket.on("connect", () => {
     document.getElementById("connection").textContent =
         "Sunucuya bağlandı.";
@@ -230,18 +239,36 @@ socket.on("connect", () => {
     }
 });
 
-socket.on("disconnect", () => {
+// Bağlantı hatası
+socket.on("connect_error", error => {
+    document.getElementById("connection").textContent =
+        "Bağlantı hatası: " + error.message;
+    console.error("Socket.IO bağlantı hatası:", error);
+});
+
+socket.on("disconnect", reason => {
     document.getElementById("connection").textContent =
         "Bağlantı kesildi. Yeniden bağlanılıyor...";
+    console.log("Bağlantı kesildi:", reason);
 });
 
 function createRoom() {
+    if (!socket.connected) {
+        alert("Sunucuya henüz bağlanılmadı. Biraz bekle.");
+        return;
+    }
+
     socket.emit("create_room", {
         player_id: playerId
     });
 }
 
 function joinGame() {
+    if (!socket.connected) {
+        alert("Sunucuya henüz bağlanılmadı. Biraz bekle.");
+        return;
+    }
+
     const code = document.getElementById("roomInput")
         .value.trim().toUpperCase();
 
