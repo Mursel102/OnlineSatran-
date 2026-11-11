@@ -514,6 +514,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
   <button type="button" data-page="home" onclick="showPage('home')">Ana Sayfa</button>
   <button type="button" data-page="play" onclick="showPage('play')">Satranç Oyna</button>
   <button type="button" data-page="pieces" onclick="showPage('pieces')">Taş Koleksiyonu</button>
+  <button type="button" data-page="special" onclick="showPage('special')">Özel Oyun</button>
   <button type="button" data-page="leaderboard" onclick="showPage('leaderboard')">Sıralama</button>
   <button type="button" data-page="dashboard" onclick="loadDashboard()">Oyuncu Merkezi</button>
   <button type="button" data-page="community" onclick="showPage('community')">Arkadaşlar</button>
@@ -535,7 +536,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
   <span class="page-kicker">ÖZEL TAŞ ATÖLYESİ</span><h2>Taş koleksiyonu</h2>
   <p class="page-lead">Her taşın görünümünü ve tasarlanan hareket kuralını burada inceleyebilirsin. Yönetici yeni taşlar ekleyebilir.</p>
   <div id="pieceCatalog" class="piece-grid"></div>
-  <div class="piece-editor">
+  <div class="piece-editor" id="sandboxEditor">
     <h3>Tahta tasarım alanı</h3><p class="page-lead">Taş seçip karelere tıklayarak özel bir başlangıç dizilimi önizle. Bu alan şu an tasarım/önizleme modudur; normal çevrimiçi maç kurallarını değiştirmez.</p>
     <div class="sandbox-controls"><select id="sandboxPiece"></select><button type="button" onclick="clearSandbox()">Tahtayı temizle</button></div>
     <div id="sandboxBoard"></div>
@@ -551,6 +552,11 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
     <button type="button" onclick="createCustomPiece()">Taşı koleksiyona ekle</button>
     <div id="pieceAdminMessage" class="small-note"></div>
   </div>
+</section>
+<section id="specialGamePage" class="page-shell site-view">
+  <span class="page-kicker">ÖZEL SATRANÇ MODU</span><h2>Özel tahta atölyesi</h2>
+  <p class="page-lead">Taşları tahtaya yerleştirerek kendi başlangıç dizilimini tasarla. Joker, Ejderha, Büyücü ve diğer özel taşların görünümlerini burada deneyebilirsin. Bu sürümde tahta bir önizleme/editördür; henüz çevrimiçi hamle motoruna bağlı değildir.</p>
+  <div id="sandboxHolder"></div>
 </section>
 <section id="leaderboardPage" class="page-shell site-view">
   <span class="page-kicker">REKABET</span><h2>Liderlik tablosu</h2><p class="page-lead">En yüksek ELO puanına sahip oyuncular.</p><div id="leaderboardPageList" class="data-list">Yükleniyor...</div>
@@ -667,16 +673,18 @@ let boardFlipped = false;
 let customPieceCache = [];
 let sandboxCells = Array(64).fill(null);
 let currentPage = "home";
+const sandboxEditor=document.getElementById("sandboxEditor");
+if(sandboxEditor) document.getElementById("sandboxHolder").appendChild(sandboxEditor);
 function showPage(page){
   if(!currentUser && page!=="home") return;
   if(page==="admin" && !(currentUser&&currentUser.is_admin)) return;
   currentPage=page;
   document.querySelectorAll(".site-view").forEach(el=>el.classList.remove("active"));
-  const ids={home:"homePage",play:roomCode?"gameScreen":"menuScreen",pieces:"piecesPage",leaderboard:"leaderboardPage",dashboard:"dashboardPanel",community:"communityPage",history:"historyPage",profile:"profilePanel",admin:"adminPanel"};
+  const ids={home:"homePage",play:roomCode?"gameScreen":"menuScreen",pieces:"piecesPage",special:"specialGamePage",leaderboard:"leaderboardPage",dashboard:"dashboardPanel",community:"communityPage",history:"historyPage",profile:"profilePanel",admin:"adminPanel"};
   const target=document.getElementById(ids[page]||"homePage");
   if(target){target.classList.remove("hidden");target.classList.add("active");}
   document.querySelectorAll("#siteNav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
-  if(page==="pieces") loadCustomPieces();
+  if(page==="pieces" || page==="special") loadCustomPieces();
   if(page==="leaderboard") loadLeaderboardPage();
   if(page==="community") loadFriendsPage();
   if(page==="history") loadHistoryPage();
