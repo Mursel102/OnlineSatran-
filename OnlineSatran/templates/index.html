@@ -465,6 +465,14 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
 @media(max-width:700px){.site-nav{position:static}.site-nav button{flex:1 1 30%;font-size:12px;padding:9px 5px}.piece-editor-grid{grid-template-columns:1fr}.data-row{align-items:flex-start;flex-direction:column}}
 .piece-image{width:90%;height:90%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 2px #0003)}
 
+
+.movement-demo-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:min(100%,430px);aspect-ratio:1;border:4px solid #43594b;border-radius:5px;overflow:hidden;margin:14px 0}
+.movement-cell{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0}
+.movement-cell.light{background:#eee9df}.movement-cell.dark{background:#829985}
+.movement-cell.demo-target:after{content:"";width:24%;height:24%;border-radius:50%;background:#1e6d48;box-shadow:0 0 0 5px #1e6d4822}
+.movement-cell.demo-origin img{width:88%;height:88%;object-fit:contain}
+#movementDemoPiece{padding:10px;border:1px solid #d4ded7;border-radius:6px;background:white;color:#243b30;margin:8px 0}
+
 </style>
 </head>
 
@@ -536,6 +544,14 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(82,119,101,.28);
   <span class="page-kicker">ÖZEL TAŞ ATÖLYESİ</span><h2>Taş koleksiyonu</h2>
   <p class="page-lead">Her taşın görünümünü ve tasarlanan hareket kuralını burada inceleyebilirsin. Yönetici yeni taşlar ekleyebilir.</p>
   <div id="pieceCatalog" class="piece-grid"></div>
+  <div class="piece-editor" id="movementDemo">
+    <h3>Taş nasıl hareket eder?</h3>
+    <p class="page-lead">Bir taş seç. Tahtadaki yeşil noktalar o taşın örnek hamle karelerini gösterir.</p>
+    <select id="movementDemoPiece" onchange="renderMovementDemo()"></select>
+    <div id="movementDemoBoard" class="movement-demo-board"></div>
+    <p id="movementDemoCaption" class="small-note"></p>
+  </div>
+  
   <div class="piece-editor" id="sandboxEditor">
     <h3>Tahta tasarım alanı</h3><p class="page-lead">Taş seçip karelere tıklayarak özel bir başlangıç dizilimi önizle. Bu alan şu an tasarım/önizleme modudur; normal çevrimiçi maç kurallarını değiştirmez.</p>
     <div class="sandbox-controls"><select id="sandboxPiece"></select><button type="button" onclick="clearSandbox()">Tahtayı temizle</button></div>
@@ -1171,12 +1187,45 @@ async function loadCustomPieces(){
    if(currentUser&&currentUser.is_admin&&!String(p.id).startsWith("d-")){const del=document.createElement("button");del.textContent="Koleksiyondan sil";del.onclick=()=>deleteCustomPiece(p.id);card.appendChild(del);}
    host.appendChild(card);
   });
+  const demoSelect=document.getElementById("movementDemoPiece");demoSelect.innerHTML="";
+  all.forEach(p=>{const o=document.createElement("option");o.value=String(p.id);o.textContent=p.name;demoSelect.appendChild(o);});
+  if(all.length) demoSelect.value=String(all[0].id);
+  renderMovementDemo();
   const select=document.getElementById("sandboxPiece");select.innerHTML="";
   ["wK","wQ","wR","wB","wN","wP","bK","bQ","bR","bB","bN","bP"].forEach(code=>{const o=document.createElement("option");o.value=code;o.textContent=(code[0]==="w"?"Beyaz ":"Siyah ")+({K:"Şah",Q:"Vezir",R:"Kale",B:"Fil",N:"At",P:"Piyon"}[code[1]]);select.appendChild(o);});
   all.forEach(p=>{const o=document.createElement("option");o.value="x:"+p.id;o.textContent="Özel: "+p.name;select.appendChild(o);});
   renderSandbox();
  }catch(e){document.getElementById("pieceCatalog").textContent=e.message;}
 }
+
+function movementTargets(style){
+ const startR=4,startC=3,targets=new Set(),dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+ const add=(r,c)=>{if(r>=0&&r<8&&c>=0&&c<8&&(r!==startR||c!==startC))targets.add(r+","+c);};
+ const slide=(directions,max)=>directions.forEach(([dr,dc])=>{for(let n=1;n<=max;n++)add(startR+dr*n,startC+dc*n);});
+ if(style==="joker"){slide(dirs,7);[[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].forEach(([r,c])=>add(startR+r,startC+c));}
+ else if(style==="dragon"){slide([[1,1],[1,-1],[-1,1],[-1,-1]],7);[[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1]].forEach(([r,c])=>add(startR+r,startC+c));}
+ else if(style==="wizard")slide(dirs,2);
+ else if(style==="phoenix"){slide([[1,1],[1,-1],[-1,1],[-1,-1]],3);add(startR-1,startC);}
+ else if(style==="golem")slide([[1,0],[-1,0],[0,1],[0,-1]],2);
+ else if(style==="archer")slide([[1,0],[-1,0],[0,1],[0,-1]],3);
+ else if(style==="assassin"){[[1,2],[1,-2],[-1,2],[-1,-2],[2,1],[2,-1],[-2,1],[-2,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([r,c])=>add(startR+r,startC+c));}
+ else slide(dirs,1);
+ return targets;
+}
+function renderMovementDemo(){
+ const select=document.getElementById("movementDemoPiece"),host=document.getElementById("movementDemoBoard");
+ if(!select||!host||!select.value)return;
+ const piece=customPieceCache.find(p=>String(p.id)===select.value);if(!piece)return;
+ const targets=movementTargets(piece.style);host.innerHTML="";
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const cell=document.createElement("div");cell.className="movement-cell "+((r+c)%2===0?"light":"dark");
+  if(r===4&&c===3){cell.classList.add("demo-origin");const img=document.createElement("img");img.src=customPieceImage(piece.style,"w",piece.symbol);img.alt=piece.name;cell.appendChild(img);}
+  else if(targets.has(r+","+c))cell.classList.add("demo-target");
+  host.appendChild(cell);
+ }
+ document.getElementById("movementDemoCaption").textContent=piece.name+": "+piece.movement+" (başlangıç karesi d4).";
+}
+
 function renderSandbox(){
  const host=document.getElementById("sandboxBoard");if(!host)return;host.innerHTML="";
  sandboxCells.forEach((piece,i)=>{const cell=document.createElement("div");cell.className="sandbox-square";if(piece){const img=document.createElement("img");img.src=piece.startsWith("x:")?customPieceImage((customPieceCache.find(p=>"x:"+p.id===piece)||{}).style||"joker","w",(customPieceCache.find(p=>"x:"+p.id===piece)||{}).symbol||"★"):standardPieceImage(piece[1].toLowerCase(),piece[0]);cell.appendChild(img);}
