@@ -98,7 +98,6 @@ def user_public(user):
         "avatar_color": user.avatar_color or "#eab308",
         "has_avatar": bool(user.avatar_image),
         "created_at": user.created_at.strftime("%d.%m.%Y"),
-        "is_admin": bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower(),
         "is_admin": bool(os.environ.get("ADMIN_EMAIL", "").strip()) and user.email.lower() == os.environ.get("ADMIN_EMAIL", "").strip().lower()
     }
 
