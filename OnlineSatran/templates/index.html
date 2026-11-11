@@ -210,7 +210,7 @@ button:hover { background: #facc15; }
       
     </div>
   </div>
-  <button type="button" onclick="toggleProfile()">Profili düzenle</button>
+  <button type="button" onclick="toggleProfile()">Profili düzenle</button><button type="button" onclick="loadDashboard()">Oyuncu merkezi</button>
   <button type="button" id="adminOpenButton" class="hidden" onclick="loadAdmin()">Yönetici paneli</button>
   <button type="button" onclick="logout()">Çıkış yap</button>
 </div>
@@ -230,7 +230,7 @@ button:hover { background: #facc15; }
   <button type="button" onclick="toggleProfile()">Kapat</button>
 </div>
 
-<div id="adminPanel" class="panel hidden">
+<div id="dashboardPanel" class="panel hidden" style="max-width:850px;text-align:left"><h2>Oyuncu merkezi</h2><div id="myStats"></div><h3>Liderlik tablosu</h3><div id="leaderboard"></div><h3>Arkadaş ekle</h3><input id="friendUsername" placeholder="Kullanıcı adı"><button onclick="sendFriendRequest()">İstek gönder</button><div id="friendRequests"></div><div id="friendList"></div><h3>Maç geçmişi</h3><div id="gameHistory"></div><button onclick="document.getElementById(&quot;dashboardPanel&quot;).classList.add(&quot;hidden&quot;)">Kapat</button></div><div id="adminPanel" class="panel hidden">
   <h2>Yönetici paneli</h2>
   <p class="small-note">Kullanıcı adı ve kayıt tarihi görünür. Şifreler hiçbir zaman gösterilmez.</p>
   <div id="adminUsers"></div>
@@ -285,7 +285,7 @@ button:hover { background: #facc15; }
             <hr>
 
             <h3>Hamleler</h3>
-            <div id="moveList">Henüz hamle yok.</div>
+            <div id="moveList">Henüz hamle yok.</div><hr><h3>Oyun sohbeti</h3><div id="chatMessages" style="height:140px;overflow-y:auto;background:#111827;padding:8px"></div><input id="chatInput" maxlength="300" placeholder="Mesaj yaz..."><button onclick="sendChatMessage()">Gönder</button>
 
             <hr>
 
@@ -338,6 +338,40 @@ async function login() {
     finishLogin(r.user);
   } catch(e){authMessage(e.message,true);}
 }
+
+async function loadDashboard(){
+ document.getElementById("dashboardPanel").classList.remove("hidden");
+ try{
+  const a=await api("/api/stats",undefined,"GET");
+  const b=await api("/api/leaderboard",undefined,"GET");
+  const c=await api("/api/friends",undefined,"GET");
+  const d=await api("/api/history",undefined,"GET");
+  const s=a.stats;
+  document.getElementById("myStats").textContent="ELO: "+s.rating+" | Maç: "+s.games+" | Galibiyet: "+s.wins+" | Mağlubiyet: "+s.losses+" | Beraberlik: "+s.draws+" | Kazanma: %"+s.win_rate;
+  document.getElementById("leaderboard").textContent=b.players.map((p,i)=>(i+1)+". "+p.username+" — "+p.rating+" ELO").join(" | ")||"Henüz sıralama yok.";
+  document.getElementById("friendRequests").textContent="Gelen istekler: "+c.incoming.map(x=>x.username+" (#"+x.id+")").join(", ");
+  document.getElementById("friendList").textContent="Arkadaşlar: "+c.friends.map(x=>x.username).join(", ");
+  document.getElementById("gameHistory").textContent=d.games.map(g=>g.white+" - "+g.black+" | "+g.result+" | "+g.date).join(" ; ")||"Henüz maç yok.";
+ }catch(e){document.getElementById("myStats").textContent=e.message;}
+}
+async function sendFriendRequest(){
+ try{await api("/api/friends/request",{username:document.getElementById("friendUsername").value});alert("İstek gönderildi.");loadDashboard();}
+ catch(e){alert(e.message);}
+}
+async function acceptFriend(id){
+ try{await api("/api/friends/"+id+"/accept",{});loadDashboard();}
+ catch(e){alert(e.message);}
+}
+function sendChatMessage(){
+ const el=document.getElementById("chatInput"),message=el.value.trim();
+ if(message&&roomCode){socket.emit("chat_message",{code:roomCode,message});el.value="";}
+}
+socket.on("chat_message",data=>{
+ const box=document.getElementById("chatMessages"),line=document.createElement("div");
+ line.textContent=data.time+" "+data.username+": "+data.message;
+ box.appendChild(line);box.scrollTop=box.scrollHeight;
+});
+
 function finishLogin(user) {
   currentUser=user; playerId=user.id;
   document.getElementById("authScreen").classList.add("hidden");
