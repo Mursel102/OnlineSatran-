@@ -1,0 +1,6 @@
+
+Flask
+Flask-SocketIO
+python-chess
+gunicorn
+simple-websocket
